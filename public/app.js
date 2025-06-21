@@ -173,9 +173,9 @@ getChallengeStatus() {
         if (!this.currentUser || !this.activeChallenge) return;
         
         const today = new Date().toISOString().split('T')[0];
-        const wasCompleted = (this.getTodayProgress() || [])[goalIndex] || false;
+        const wasCompleted = this.getTodayProgress()[goalIndex] || false;
         const newCompleted = !wasCompleted;
-    },
+    }
 async loadLeaderboard() {
     try {
         const response = await fetch('/api/leaderboard');
@@ -195,6 +195,26 @@ async loadUserStats(userId) {
         return { rank: 0, total_challenges: 0, total_completed_goals: 0, current_streak: 0 };
     }
 }
+        
+        // Update locally first for smooth UI
+        if (!this.dailyProgress[today]) {
+  this.dailyProgress[today] = {};
+},
+
+        this.dailyProgress[today][goalIndex] = newCompleted;
+        
+        // Update UI immediately
+        this.updateGoalItem(goalIndex);
+        
+        // Save to database
+        await this.updateProgress(
+            this.currentUser.id,
+            this.activeChallenge.id,
+            today,
+            goalIndex,
+            newCompleted
+        );
+        
         // Update user stats
         if (newCompleted) {
             this.currentUser.total_points++;
