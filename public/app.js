@@ -26,7 +26,18 @@ class ChallengeApp {
     init() {
         this.render();
     }
-
+// Move the render method here
+    render() {
+        const app = document.getElementById('app');
+        
+        if (this.currentScreen === 'login') {
+            app.innerHTML = this.renderLogin();
+            this.attachLoginEvents();
+        } else {
+            app.innerHTML = this.renderDashboard();
+            this.attachDashboardEvents();
+        }
+    }
     // === PROGRESS METHODS ===
     async initTodayProgress() {
         if (!this.selectedChallenge || !this.currentUser) return;
