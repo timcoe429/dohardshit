@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Challenge App</title>
+    <!-- Suppress Tailwind CDN warning -->
     <script>
-        // Suppress Tailwind warning
         if (typeof process !== 'undefined') {
             process = { ...process, env: { ...process.env, NODE_ENV: 'development' } };
         } else {
@@ -14,7 +14,27 @@
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Your existing styles */
+        .animate-in {
+            animation: slideIn 0.6s ease-out;
+        }
+        .slide-in-from-bottom-4 {
+            animation: slideInFromBottom 0.6s ease-out;
+        }
+        .slide-in-from-right-4 {
+            animation: slideInFromRight 0.6s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInFromBottom {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInFromRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
     </style>
 </head>
 <body>
