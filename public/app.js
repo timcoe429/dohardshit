@@ -1,10 +1,10 @@
-// Daily Challenge App - Improved UI Version
+// Daily Challenge App - Database Version
 class ChallengeApp {
     constructor() {
         this.currentUser = null;
         this.currentScreen = 'login';
-        this.challenges = []; // Start with empty challenges
-        this.activeChallenge = null; // No default challenge
+        this.challenges = [];
+        this.activeChallenge = null;
         this.dailyProgress = {};
         this.userStats = { totalPoints: 0 };
         this.showCreateChallenge = false;
@@ -15,20 +15,83 @@ class ChallengeApp {
     
     init() {
         this.render();
-        if (this.activeChallenge) {
-            this.initTodayProgress();
+    }
+
+    // API calls
+    async createUser(name) {
+        try {
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            return await response.json();
+        } catch (err) {
+            console.error('Create user error:', err);
+            return null;
+        }
+    }
+
+    async loadChallenges(userId) {
+        try {
+            const response = await fetch(`/api/users/${userId}/challenges`);
+            return await response.json();
+        } catch (err) {
+            console.error('Load challenges error:', err);
+            return [];
+        }
+    }
+
+    async createChallengeAPI(challengeData) {
+        try {
+            const response = await fetch('/api/challenges', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(challengeData)
+            });
+            return await response.json();
+        } catch (err) {
+            console.error('Create challenge error:', err);
+            return null;
+        }
+    }
+
+    async loadDailyProgress(userId, challengeId, date) {
+        try {
+            const response = await fetch(`/api/progress/${userId}/${challengeId}/${date}`);
+            return await response.json();
+        } catch (err) {
+            console.error('Load progress error:', err);
+            return {};
+        }
+    }
+
+    async updateProgress(userId, challengeId, date, goalIndex, completed) {
+        try {
+            const response = await fetch('/api/progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    challenge_id: challengeId,
+                    date,
+                    goal_index: goalIndex,
+                    completed
+                })
+            });
+            return await response.json();
+        } catch (err) {
+            console.error('Update progress error:', err);
+            return null;
         }
     }
     
-    initTodayProgress() {
-        if (!this.activeChallenge) return;
+    async initTodayProgress() {
+        if (!this.activeChallenge || !this.currentUser) return;
+        
         const today = new Date().toISOString().split('T')[0];
-        if (!this.dailyProgress[today]) {
-            this.dailyProgress[today] = {};
-            this.activeChallenge.goals.forEach((goal, index) => {
-                this.dailyProgress[today][index] = false;
-            });
-        }
+        const progress = await this.loadDailyProgress(this.currentUser.id, this.activeChallenge.id, today);
+        this.dailyProgress[today] = progress;
     }
     
     getTodayProgress() {
@@ -48,24 +111,43 @@ class ChallengeApp {
         return Math.round((completed / this.activeChallenge.goals.length) * 100);
     }
     
-    toggleGoal(goalIndex) {
-        const today = new Date().toISOString().split('T')[0];
-        const wasCompleted = this.dailyProgress[today][goalIndex];
-        this.dailyProgress[today][goalIndex] = !wasCompleted;
+    async toggleGoal(goalIndex) {
+        if (!this.currentUser || !this.activeChallenge) return;
         
-        if (!wasCompleted) {
-            this.userStats.totalPoints++;
+        const today = new Date().toISOString().split('T')[0];
+        const wasCompleted = this.getTodayProgress()[goalIndex] || false;
+        const newCompleted = !wasCompleted;
+        
+        // Update locally first for smooth UI
+        if (!this.dailyProgress[today]) this.dailyProgress[today] = {};
+        this.dailyProgress[today][goalIndex] = newCompleted;
+        
+        // Update UI immediately
+        this.updateGoalItem(goalIndex);
+        
+        // Save to database
+        await this.updateProgress(
+            this.currentUser.id,
+            this.activeChallenge.id,
+            today,
+            goalIndex,
+            newCompleted
+        );
+        
+        // Update user stats
+        if (newCompleted) {
+            this.currentUser.total_points++;
         } else {
-            this.userStats.totalPoints = Math.max(0, this.userStats.totalPoints - 1);
+            this.currentUser.total_points = Math.max(0, this.currentUser.total_points - 1);
         }
         
-        // Smooth updates without full page refresh
-        this.updateGoalItem(goalIndex);
         this.updateStats();
     }
     
     updateGoalItem(goalIndex) {
         const goalElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
+        if (!goalElement) return;
+        
         const isCompleted = this.getTodayProgress()[goalIndex] || false;
         const goal = this.activeChallenge.goals[goalIndex];
         
@@ -96,7 +178,7 @@ class ChallengeApp {
         
         // Update points in header
         const headerPoints = document.querySelector('.text-blue-600');
-        if (headerPoints) headerPoints.textContent = `${this.userStats.totalPoints} points`;
+        if (headerPoints) headerPoints.textContent = `${this.currentUser.total_points} points`;
         
         // Update today's points card
         const todayPointsElement = document.querySelector('.grid .text-2xl.text-blue-600');
@@ -109,7 +191,6 @@ class ChallengeApp {
     
     showCreateChallengeModal() {
         this.showCreateChallenge = true;
-        // Smooth modal appearance without page refresh
         this.renderModal();
     }
     
@@ -122,23 +203,27 @@ class ChallengeApp {
         }
     }
     
-    createChallenge() {
+    async createChallenge() {
         const name = this.newChallenge.name.trim();
         const validGoals = this.newChallenge.goals.filter(g => g.trim());
         
-        if (name && validGoals.length > 0) {
-            const challenge = {
-                id: Date.now(),
+        if (name && validGoals.length > 0 && this.currentUser) {
+            const challengeData = {
+                user_id: this.currentUser.id,
                 name: name,
                 duration: this.newChallenge.duration,
                 goals: validGoals
             };
             
-            this.challenges.push(challenge);
-            this.activeChallenge = challenge;
-            this.hideCreateChallengeModal();
-            this.initTodayProgress();
-            this.render();
+            const challenge = await this.createChallengeAPI(challengeData);
+            
+            if (challenge) {
+                this.challenges.push(challenge);
+                this.activeChallenge = challenge;
+                this.hideCreateChallengeModal();
+                await this.initTodayProgress();
+                this.render();
+            }
         }
     }
     
@@ -187,14 +272,30 @@ class ChallengeApp {
         }
     }
     
-    handleLogin(name) {
-        this.currentUser = name;
-        this.currentScreen = 'dashboard';
-        this.render();
+    async handleLogin(name) {
+        const user = await this.createUser(name);
+        if (user) {
+            this.currentUser = user;
+            this.userStats.totalPoints = user.total_points;
+            this.currentScreen = 'dashboard';
+            
+            // Load user's challenges
+            this.challenges = await this.loadChallenges(user.id);
+            if (this.challenges.length > 0) {
+                this.activeChallenge = this.challenges[0];
+                await this.initTodayProgress();
+            }
+            
+            this.render();
+        }
     }
     
     handleLogout() {
         this.currentUser = null;
+        this.challenges = [];
+        this.activeChallenge = null;
+        this.dailyProgress = {};
+        this.userStats = { totalPoints: 0 };
         this.currentScreen = 'login';
         this.render();
     }
@@ -209,6 +310,7 @@ class ChallengeApp {
                         </div>
                         <h1 class="text-2xl font-bold text-gray-800 mb-2">Daily Challenge</h1>
                         <p class="text-gray-600">Start your journey to better habits</p>
+                        <p class="text-sm text-green-600 mt-2">💾 Now with persistent storage!</p>
                     </div>
                     
                     <div class="space-y-6">
@@ -237,7 +339,6 @@ class ChallengeApp {
     }
     
     renderModal() {
-        // Remove existing modal if any
         const existingModal = document.getElementById('challengeModal');
         if (existingModal) existingModal.remove();
         
@@ -331,7 +432,6 @@ class ChallengeApp {
         if (!this.activeChallenge) {
             return `
                 <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-                    <!-- Header -->
                     <header class="bg-white shadow-sm border-b border-gray-200">
                         <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
                             <div class="flex items-center space-x-3">
@@ -340,13 +440,13 @@ class ChallengeApp {
                                 </div>
                                 <div>
                                     <h1 class="text-lg font-bold text-gray-800">Daily Challenge</h1>
-                                    <p class="text-sm text-gray-600">Welcome, ${this.currentUser}!</p>
+                                    <p class="text-sm text-gray-600">Welcome, ${this.currentUser.name}!</p>
                                 </div>
                             </div>
                             
                             <div class="flex items-center space-x-4">
                                 <div class="text-right">
-                                    <p class="text-sm font-semibold text-blue-600">${this.userStats.totalPoints} points</p>
+                                    <p class="text-sm font-semibold text-blue-600">${this.currentUser.total_points} points</p>
                                     <p class="text-xs text-gray-500">Total earned</p>
                                 </div>
                                 <button id="logoutBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
@@ -356,7 +456,6 @@ class ChallengeApp {
                         </div>
                     </header>
 
-                    <!-- Main Content -->
                     <main class="max-w-4xl mx-auto p-4">
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 animate-in slide-in-from-right-4">
                             ${this.renderEmptyState()}
@@ -371,7 +470,6 @@ class ChallengeApp {
         
         return `
             <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-                <!-- Header -->
                 <header class="bg-white shadow-sm border-b border-gray-200">
                     <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
                         <div class="flex items-center space-x-3">
@@ -380,13 +478,13 @@ class ChallengeApp {
                             </div>
                             <div>
                                 <h1 class="text-lg font-bold text-gray-800">Daily Challenge</h1>
-                                <p class="text-sm text-gray-600">Welcome back, ${this.currentUser}!</p>
+                                <p class="text-sm text-gray-600">Welcome back, ${this.currentUser.name}!</p>
                             </div>
                         </div>
                         
                         <div class="flex items-center space-x-4">
                             <div class="text-right">
-                                <p class="text-sm font-semibold text-blue-600">${this.userStats.totalPoints} points</p>
+                                <p class="text-sm font-semibold text-blue-600">${this.currentUser.total_points} points</p>
                                 <p class="text-xs text-gray-500">Total earned</p>
                             </div>
                             <button id="logoutBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
@@ -396,10 +494,8 @@ class ChallengeApp {
                     </div>
                 </header>
 
-                <!-- Main Content -->
                 <main class="max-w-4xl mx-auto p-4 pt-8">
                     <div class="animate-in slide-in-from-right-4">
-                        <!-- Stats Cards -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                                 <div class="flex items-center justify-between">
@@ -432,7 +528,6 @@ class ChallengeApp {
                             </div>
                         </div>
 
-                        <!-- Challenge Section -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                             <div class="p-6 border-b border-gray-200">
                                 <div class="flex items-center justify-between">
@@ -446,7 +541,6 @@ class ChallengeApp {
                                 </div>
                             </div>
 
-                            <!-- Goals Checklist -->
                             <div class="p-6">
                                 <div class="space-y-3">
                                     ${this.activeChallenge.goals.map((goal, index) => {
@@ -544,35 +638,30 @@ class ChallengeApp {
         const nameInput = document.getElementById('challengeName');
         const durationInput = document.getElementById('challengeDuration');
         
-        // Cancel modal
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => {
                 this.hideCreateChallengeModal();
             });
         }
         
-        // Create challenge
         if (createBtn) {
             createBtn.addEventListener('click', () => {
                 this.createChallenge();
             });
         }
         
-        // Update challenge name
         if (nameInput) {
             nameInput.addEventListener('input', (e) => {
                 this.newChallenge.name = e.target.value;
             });
         }
         
-        // Update duration
         if (durationInput) {
             durationInput.addEventListener('input', (e) => {
                 this.newChallenge.duration = parseInt(e.target.value) || 7;
             });
         }
         
-        // Click outside to close
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
@@ -587,14 +676,12 @@ class ChallengeApp {
     attachModalGoalEvents() {
         const addGoalBtn = document.getElementById('addGoalBtn');
         
-        // Add goal
         if (addGoalBtn) {
             addGoalBtn.addEventListener('click', () => {
                 this.addGoal();
             });
         }
         
-        // Goal inputs
         document.querySelectorAll('.goal-input').forEach(input => {
             input.addEventListener('input', (e) => {
                 const index = parseInt(e.target.getAttribute('data-goal-index'));
@@ -602,7 +689,6 @@ class ChallengeApp {
             });
         });
         
-        // Remove goal buttons
         document.querySelectorAll('.remove-goal').forEach(btn => {
             btn.addEventListener('click', () => {
                 const index = parseInt(btn.getAttribute('data-goal-index'));
