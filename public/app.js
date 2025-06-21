@@ -173,7 +173,7 @@ getChallengeStatus() {
         if (!this.currentUser || !this.activeChallenge) return;
         
         const today = new Date().toISOString().split('T')[0];
-        const wasCompleted = this.getTodayProgress()[goalIndex] || false;
+        const wasCompleted = (this.getTodayProgress() || [])[goalIndex] || false;
         const newCompleted = !wasCompleted;
     },
 async loadLeaderboard() {
