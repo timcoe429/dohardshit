@@ -88,4 +88,73 @@ class ChallengeAPI {
             return { rank: 0, total_challenges: 0, total_completed_goals: 0, current_streak: 0 };
         }
     }
+
+    // === SHARED CHALLENGE API METHODS ===
+    static async getAvailableChallenges() {
+        try {
+            const response = await fetch('/api/challenges/available');
+            return await response.json();
+        } catch (err) {
+            console.error('Get available challenges error:', err);
+            return [];
+        }
+    }
+
+    static async joinChallenge(challengeId, userId, goals) {
+        try {
+            const response = await fetch(`/api/challenges/${challengeId}/join`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, goals })
+            });
+            return await response.json();
+        } catch (err) {
+            console.error('Join challenge error:', err);
+            return null;
+        }
+    }
+
+    static async createSharedChallenge(challengeData) {
+        try {
+            const response = await fetch('/api/challenges/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(challengeData)
+            });
+            return await response.json();
+        } catch (err) {
+            console.error('Create shared challenge error:', err);
+            return null;
+        }
+    }
+
+    static async getUserCurrentChallenges(userId) {
+        try {
+            const response = await fetch(`/api/users/${userId}/current-challenges`);
+            return await response.json();
+        } catch (err) {
+            console.error('Get user current challenges error:', err);
+            return [];
+        }
+    }
+
+    static async getChallengeLeaderboard(challengeId) {
+        try {
+            const response = await fetch(`/api/challenges/${challengeId}/leaderboard`);
+            return await response.json();
+        } catch (err) {
+            console.error('Get challenge leaderboard error:', err);
+            return [];
+        }
+    }
+
+    static async getChallengeByCode(inviteCode) {
+        try {
+            const response = await fetch(`/api/challenges/code/${inviteCode}`);
+            return await response.json();
+        } catch (err) {
+            console.error('Get challenge by code error:', err);
+            return null;
+        }
+    }
 }
