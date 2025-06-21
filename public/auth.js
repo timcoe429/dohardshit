@@ -17,7 +17,7 @@ class AuthManager {
             return null;
         }
     }
-    
+
     async handleLogin(name) {
         const user = await this.createUser(name);
         if (user) {
