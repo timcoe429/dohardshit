@@ -10,7 +10,11 @@ class ChallengeApp {
         this.userStats = { totalPoints: 0 };
         this.showCreateChallenge = false;
         this.newChallenge = { name: '', duration: 7, goals: [''] };
-        
+        // === CONSTRUCTOR ADDITIONS ===
+this.leaderboard = [];
+this.userStats = { totalPoints: 0, rank: 0, total_challenges: 0, total_completed_goals: 0, current_streak: 0 };
+this.showLeaderboard = false;
+// === END CONSTRUCTOR ADDITIONS ===
         this.init();
     }
     
@@ -151,6 +155,26 @@ getChallengeStatus() {
         const today = new Date().toISOString().split('T')[0];
         const wasCompleted = this.getTodayProgress()[goalIndex] || false;
         const newCompleted = !wasCompleted;
+
+async loadLeaderboard() {
+    try {
+        const response = await fetch('/api/leaderboard');
+        return await response.json();
+    } catch (err) {
+        console.error('Load leaderboard error:', err);
+        return [];
+    }
+}
+
+async loadUserStats(userId) {
+    try {
+        const response = await fetch(`/api/users/${userId}/stats`);
+        return await response.json();
+    } catch (err) {
+        console.error('Load user stats error:', err);
+        return { rank: 0, total_challenges: 0, total_completed_goals: 0, current_streak: 0 };
+    }
+}
         
         // Update locally first for smooth UI
         if (!this.dailyProgress[today]) this.dailyProgress[today] = {};
