@@ -282,6 +282,170 @@ app.get('/api/users/:userId/stats', async (req, res) => {
     res.status(500).json({ error: 'Failed to get user stats' });
   }
 });
+// === SHARED CHALLENGE API ENDPOINTS ===
+
+// Get available challenges to join
+app.get('/api/challenges/available', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        c.*,
+        u.name as creator_name,
+        COUNT(cp.user_id) as participant_count
+      FROM challenges c
+      LEFT JOIN users u ON c.created_by = u.id
+      LEFT JOIN challenge_participants cp ON c.id = cp.challenge_id
+      WHERE c.is_public = true AND c.end_date >= CURRENT_DATE
+      GROUP BY c.id, u.name
+      ORDER BY c.created_at DESC
+    `);
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get available challenges error:', err);
+    res.status(500).json({ error: 'Failed to get available challenges' });
+  }
+});
+
+// Join a challenge
+app.post('/api/challenges/:challengeId/join', async (req, res) => {
+  try {
+    const { challengeId } = req.params;
+    const { user_id, goals } = req.body;
+    
+    // Check if user already joined this challenge
+    const existing = await pool.query(
+      'SELECT id FROM challenge_participants WHERE challenge_id = $1 AND user_id = $2',
+      [challengeId, user_id]
+    );
+    
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Already joined this challenge' });
+    }
+    
+    // Join the challenge
+    const result = await pool.query(
+      'INSERT INTO challenge_participants (challenge_id, user_id, goals) VALUES ($1, $2, $3) RETURNING *',
+      [challengeId, user_id, goals]
+    );
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Join challenge error:', err);
+    res.status(500).json({ error: 'Failed to join challenge' });
+  }
+});
+
+// Create new challenge
+app.post('/api/challenges/create', async (req, res) => {
+  try {
+    const { name, duration, start_date, created_by, goals } = req.body;
+    
+    // Calculate end date
+    const startDate = new Date(start_date);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + duration - 1);
+    
+    // Generate invite code
+    const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    // Create challenge
+    const challengeResult = await pool.query(
+      'INSERT INTO challenges (name, duration, start_date, end_date, invite_code, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [name, duration, start_date, endDate.toISOString().split('T')[0], inviteCode, created_by]
+    );
+    
+    const challenge = challengeResult.rows[0];
+    
+    // Auto-join creator to their own challenge
+    await pool.query(
+      'INSERT INTO challenge_participants (challenge_id, user_id, goals) VALUES ($1, $2, $3)',
+      [challenge.id, created_by, goals]
+    );
+    
+    res.json(challenge);
+  } catch (err) {
+    console.error('Create challenge error:', err);
+    res.status(500).json({ error: 'Failed to create challenge' });
+  }
+});
+
+// Get user's current challenges
+app.get('/api/users/:userId/current-challenges', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await pool.query(`
+      SELECT 
+        c.*,
+        cp.goals,
+        cp.joined_at,
+        u.name as creator_name
+      FROM challenges c
+      JOIN challenge_participants cp ON c.id = cp.challenge_id
+      LEFT JOIN users u ON c.created_by = u.id
+      WHERE cp.user_id = $1 AND c.end_date >= CURRENT_DATE
+      ORDER BY c.start_date DESC
+    `, [userId]);
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get user challenges error:', err);
+    res.status(500).json({ error: 'Failed to get user challenges' });
+  }
+});
+
+// Get challenge leaderboard
+app.get('/api/challenges/:challengeId/leaderboard', async (req, res) => {
+  try {
+    const { challengeId } = req.params;
+    const result = await pool.query(`
+      SELECT 
+        u.id,
+        u.name,
+        COUNT(CASE WHEN dp.completed = true THEN 1 END) as total_points,
+        COUNT(DISTINCT dp.date) as active_days
+      FROM challenge_participants cp
+      JOIN users u ON cp.user_id = u.id
+      LEFT JOIN daily_progress dp ON u.id = dp.user_id AND dp.challenge_id = $1
+      WHERE cp.challenge_id = $1
+      GROUP BY u.id, u.name
+      ORDER BY total_points DESC, active_days DESC, u.name ASC
+    `, [challengeId]);
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get challenge leaderboard error:', err);
+    res.status(500).json({ error: 'Failed to get challenge leaderboard' });
+  }
+});
+
+// Get challenge by invite code
+app.get('/api/challenges/code/:inviteCode', async (req, res) => {
+  try {
+    const { inviteCode } = req.params;
+    const result = await pool.query(`
+      SELECT 
+        c.*,
+        u.name as creator_name,
+        COUNT(cp.user_id) as participant_count
+      FROM challenges c
+      LEFT JOIN users u ON c.created_by = u.id
+      LEFT JOIN challenge_participants cp ON c.id = cp.challenge_id
+      WHERE c.invite_code = $1
+      GROUP BY c.id, u.name
+    `, [inviteCode.toUpperCase()]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Get challenge by code error:', err);
+    res.status(500).json({ error: 'Failed to get challenge' });
+  }
+});
+// === END SHARED CHALLENGE API ENDPOINTS ===
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running with database!' });
