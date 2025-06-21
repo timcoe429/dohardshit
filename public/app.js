@@ -10,6 +10,12 @@ class ChallengeApp {
         this.userStats = { totalPoints: 0, rank: 0, total_challenges: 0, total_completed_goals: 0, current_streak: 0 };
         this.leaderboard = [];
         
+        // === SHARED CHALLENGE PROPERTIES ===
+        this.availableChallenges = [];
+        this.selectedChallenge = null;
+        this.showJoinChallenge = false;
+        // === END SHARED CHALLENGE PROPERTIES ===
+        
         // === MANAGERS ===
         this.modalManager = new ModalManager(this);
         this.leaderboardManager = new LeaderboardManager(this);
@@ -23,10 +29,10 @@ class ChallengeApp {
 
     // === PROGRESS METHODS ===
     async initTodayProgress() {
-        if (!this.activeChallenge || !this.currentUser) return;
+        if (!this.selectedChallenge || !this.currentUser) return;
         
         const today = new Date().toISOString().split('T')[0];
-        const progress = await ChallengeAPI.loadDailyProgress(this.currentUser.id, this.activeChallenge.id, today);
+        const progress = await ChallengeAPI.loadDailyProgress(this.currentUser.id, this.selectedChallenge.id, today);
         this.dailyProgress[today] = progress;
     }
     
@@ -39,20 +45,20 @@ class ChallengeApp {
     }
     
     getCompletionPercentage() {
-        return ChallengeUtils.getCompletionPercentage(this.activeChallenge, this.dailyProgress);
+        return ChallengeUtils.getCompletionPercentage(this.selectedChallenge, this.dailyProgress);
     }
 
     getCurrentChallengeDay() {
-        return ChallengeUtils.getCurrentChallengeDay(this.activeChallenge);
+        return ChallengeUtils.getCurrentChallengeDay(this.selectedChallenge);
     }
 
     getChallengeProgress() {
-        return ChallengeUtils.getChallengeProgress(this.activeChallenge);
+        return ChallengeUtils.getChallengeProgress(this.selectedChallenge);
     }
     
     // === GOAL INTERACTION ===
     async toggleGoal(goalIndex) {
-        if (!this.currentUser || !this.activeChallenge) return;
+        if (!this.currentUser || !this.selectedChallenge) return;
         
         const today = new Date().toISOString().split('T')[0];
         const wasCompleted = this.getTodayProgress()[goalIndex] || false;
@@ -68,7 +74,7 @@ class ChallengeApp {
         // Save to database
         await ChallengeAPI.updateProgress(
             this.currentUser.id,
-            this.activeChallenge.id,
+            this.selectedChallenge.id,
             today,
             goalIndex,
             newCompleted
@@ -89,7 +95,7 @@ class ChallengeApp {
         if (!goalElement) return;
         
         const isCompleted = this.getTodayProgress()[goalIndex] || false;
-        const goal = this.activeChallenge.goals[goalIndex];
+        const goal = this.selectedChallenge.goals[goalIndex];
         
         goalElement.className = `flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 goal-item ${
             isCompleted 
@@ -129,33 +135,95 @@ class ChallengeApp {
         if (completionElement) completionElement.textContent = `${completion}%`;
     }
     
-    // === USER MANAGEMENT ===
+    // === SHARED CHALLENGE METHODS ===
+    showJoinChallengeModal() {
+        this.showJoinChallenge = true;
+        this.renderModal();
+    }
+
+    hideJoinChallengeModal() {
+        this.showJoinChallenge = false;
+        const modal = document.getElementById('joinChallengeModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    async joinChallenge(challengeId) {
+        if (!this.currentUser) return;
+        
+        const joinResult = await ChallengeAPI.joinChallenge(
+            challengeId, 
+            this.currentUser.id,
+            this.newChallenge.goals
+        );
+        
+        if (joinResult) {
+            this.challenges.push(joinResult);
+            this.selectedChallenge = joinResult;
+            this.hideJoinChallengeModal();
+            await this.initTodayProgress();
+            this.render();
+        }
+    }
+
+    async createNewChallenge() {
+        const name = this.newChallenge.name.trim();
+        const validGoals = this.newChallenge.goals.filter(g => g.trim());
+        
+        if (name && validGoals.length > 0 && this.currentUser) {
+            const challengeData = {
+                name: name,
+                duration: this.newChallenge.duration,
+                start_date: new Date().toISOString().split('T')[0],
+                created_by: this.currentUser.id, 
+                goals: validGoals
+            };
+            
+            try {
+                const challenge = await ChallengeAPI.createSharedChallenge(challengeData);
+                
+                if (challenge) {
+                    this.challenges.push(challenge);
+                    this.selectedChallenge = challenge;
+                    this.hideCreateChallengeModal();
+                    await this.initTodayProgress();
+                    this.render();
+                }
+            } catch (err) {
+                console.error('Error creating challenge:', err);
+                alert('Failed to create challenge. Please try again.');
+            }
+        }
+    }
+    // === END SHARED CHALLENGE METHODS ===
+// === USER MANAGEMENT ===
     async handleLogin(name) {
         const user = await ChallengeAPI.createUser(name);
         if (user) {
             this.currentUser = user;
-            this.userStats.totalPoints = user.total_points;
             this.currentScreen = 'dashboard';
             
             // Load user's data
             try {
-                const [challengesData, statsData, leaderboardData] = await Promise.all([
-                    ChallengeAPI.loadChallenges(user.id),
+                const [challengesData, statsData, leaderboardData, availableData] = await Promise.all([
+                    ChallengeAPI.getUserCurrentChallenges(user.id),
                     ChallengeAPI.loadUserStats(user.id),
-                    ChallengeAPI.loadLeaderboard()
+                    ChallengeAPI.loadLeaderboard(),
+                    ChallengeAPI.getAvailableChallenges()
                 ]);
                 
-                this.challenges = Array.isArray(challengesData) ? challengesData : [];
+                this.challenges = challengesData;
                 this.userStats = { ...this.userStats, ...statsData };
                 this.leaderboard = leaderboardData;
+                this.availableChallenges = availableData;
                 
                 if (this.challenges.length > 0) {
-                    this.activeChallenge = this.challenges[0];
+                    this.selectedChallenge = this.challenges[0];
                     await this.initTodayProgress();
                 }
             } catch (err) {
                 console.error('Error loading user data:', err);
-                this.challenges = [];
             }
             
             this.render();
@@ -165,10 +233,11 @@ class ChallengeApp {
     handleLogout() {
         this.currentUser = null;
         this.challenges = [];
-        this.activeChallenge = null;
+        this.selectedChallenge = null;
         this.dailyProgress = {};
         this.userStats = { totalPoints: 0, rank: 0, total_challenges: 0, total_completed_goals: 0, current_streak: 0 };
         this.leaderboard = [];
+        this.availableChallenges = [];
         this.currentScreen = 'login';
         this.render();
     }
@@ -212,6 +281,36 @@ class ChallengeApp {
         `;
     }
     
+    renderAvailableChallenges() {
+        if (this.availableChallenges.length === 0) {
+            return '<p class="text-center text-gray-500">No available challenges at the moment.</p>';
+        }
+        
+        return `
+            <div class="space-y-4">
+                ${this.availableChallenges.map(challenge => `
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-xl font-bold">${challenge.name}</h3>
+                            <span class="text-sm text-gray-500">${challenge.participant_count} participants</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Created by ${challenge.creator_name} &bull; 
+                            ${challenge.duration} days &bull;
+                            Starts ${ChallengeUtils.formatDate(challenge.start_date)}  
+                        </p>
+                        <button 
+                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                            data-challenge-id="${challenge.id}"
+                        >
+                            Join Challenge
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
     renderEmptyState() {
         return `
             <div class="text-center py-12">
@@ -228,9 +327,10 @@ class ChallengeApp {
     }
     
     renderDashboard() {
-        if (!this.activeChallenge) {
+        if (!this.selectedChallenge) {
             return `
                 <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+                    <!-- Header -->
                     <header class="bg-white shadow-sm border-b border-gray-200">
                         <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
                             <div class="flex items-center space-x-3">
@@ -258,11 +358,30 @@ class ChallengeApp {
                         </div>
                     </header>
 
-                    <main class="max-w-4xl mx-auto p-4">
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 animate-in slide-in-from-right-4">
+                    <!-- Main Content -->
+                    <main class="max-w-4xl mx-auto py-6 md:py-12">
+                        <!-- Empty State -->
+                        <div class="bg-white shadow rounded-lg mb-8">
                             ${this.renderEmptyState()}
                         </div>
+                        
+                        <!-- Available Challenges -->
+                        <div class="bg-white shadow rounded-lg">
+                            <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+                                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate">
+                                    Available Challenges
+                                </h2>
+                            </div>
+                            <div class="p-6">
+                                ${this.renderAvailableChallenges()}
+                            </div>
+                        </div>
                     </main>
+                    
+                    <!-- Modals -->
+                    ${this.renderJoinChallengeModal()}
+                    ${this.leaderboardManager.renderModal()}
+                    ${this.modalManager.renderCreateChallengeModal()}
                 </div>
             `;
         }
@@ -272,6 +391,7 @@ class ChallengeApp {
         
         return `
             <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+                <!-- Header -->
                 <header class="bg-white shadow-sm border-b border-gray-200">
                     <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
                         <div class="flex items-center space-x-3">
@@ -299,8 +419,10 @@ class ChallengeApp {
                     </div>
                 </header>
 
+                <!-- Main Content -->
                 <main class="max-w-4xl mx-auto p-4 pt-8">
                     <div class="animate-in slide-in-from-right-4">
+                        <!-- Stats Cards -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                                 <div class="flex items-center justify-between">
@@ -325,7 +447,7 @@ class ChallengeApp {
                             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-2xl font-bold text-purple-600">${this.activeChallenge.duration}</p>
+                                        <p class="text-2xl font-bold text-purple-600">${this.selectedChallenge.duration}</p>
                                         <p class="text-sm text-gray-600">Challenge Days</p>
                                     </div>
                                     <span class="text-2xl">👥</span>
@@ -333,14 +455,15 @@ class ChallengeApp {
                             </div>
                         </div>
 
+                        <!-- Challenge Section -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                             <div class="p-6 border-b border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div class="flex-1">
                                         <div class="flex items-center space-x-3 mb-2">
-                                            <h2 class="text-xl font-bold text-gray-800">${this.activeChallenge.name}</h2>
+                                            <h2 class="text-xl font-bold text-gray-800">${this.selectedChallenge.name}</h2>
                                             <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
-                                                Day ${this.getCurrentChallengeDay()} of ${this.activeChallenge.duration}
+                                                Day ${this.getCurrentChallengeDay()} of ${this.selectedChallenge.duration}
                                             </span>
                                         </div>
                                         <p class="text-sm text-gray-600 mb-3">Complete your daily goals to earn points</p>
@@ -357,9 +480,10 @@ class ChallengeApp {
                                 </div>
                             </div>
 
+<!-- Goals Checklist -->
                             <div class="p-6">
                                 <div class="space-y-3">
-                                    ${this.activeChallenge.goals.map((goal, index) => {
+                                    ${this.selectedChallenge.goals.map((goal, index) => {
                                         const isCompleted = this.getTodayProgress()[index] || false;
                                         return `
                                             <div 
@@ -389,20 +513,60 @@ class ChallengeApp {
                         </div>
                     </div>
                 </main>
+                
+                <!-- Modals -->
+                ${this.renderJoinChallengeModal()}
+                ${this.leaderboardManager.renderModal()}
+                ${this.modalManager.renderCreateChallengeModal()}
             </div>
         `;
     }
     
-    render() {
-        const app = document.getElementById('app');
+    renderJoinChallengeModal() {
+        if (!this.showJoinChallenge) return '';
         
-        if (this.currentScreen === 'login') {
-            app.innerHTML = this.renderLogin();
-            this.attachLoginEvents();
-        } else {
-            app.innerHTML = this.renderDashboard();
-            this.attachDashboardEvents();
-        }
+        return `
+            <div id="joinChallengeModal" class="modal">
+                <div class="modal-content">
+                    <h2 class="text-2xl mb-4">Join Challenge</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-bold mb-2">Your Goals:</label>
+                        <div id="joinGoalsList">
+                            ${this.newChallenge.goals.map((goal, index) => `
+                                <div class="mb-2 flex items-center">
+                                    <input 
+                                        type="text"
+                                        class="border rounded w-full py-2 px-3 mr-2" 
+                                        placeholder="Goal ${index + 1}"
+                                        data-goal-index="${index}"
+                                        value="${goal}"
+                                    >
+                                    <button 
+                                        class="text-red-500 hover:text-red-700 text-xl"
+                                        data-remove-index="${index}"
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                            `).join('')}
+                            <button id="addJoinGoalBtn" class="text-blue-500 hover:text-blue-700">
+                                + Add a goal
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="text-right">
+                        <button id="cancelJoinBtn" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">
+                            Cancel
+                        </button>
+                        <button id="confirmJoinBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            Join Challenge
+                        </button>  
+                    </div>
+                </div>
+            </div>
+        `;
     }
     
     // === EVENT HANDLERS ===
@@ -453,6 +617,53 @@ class ChallengeApp {
                 this.leaderboardManager.showModal();
             });
         }
+        
+        // Join challenge
+        document.querySelectorAll('[data-challenge-id]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const challengeId = parseInt(btn.getAttribute('data-challenge-id'));
+                this.showJoinChallengeModal(challengeId);
+            });  
+        });
+    }
+
+    attachJoinChallengeEvents() {
+        const modal = document.getElementById('joinChallengeModal');
+        const cancelBtn = document.getElementById('cancelJoinBtn');
+        const confirmBtn = document.getElementById('confirmJoinBtn');
+        const addGoalBtn = document.getElementById('addJoinGoalBtn');
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                this.hideJoinChallengeModal();
+            });
+        }
+        
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                this.joinChallenge(this.selectedChallenge.id);
+            });
+        }
+        
+        if (addGoalBtn) {
+            addGoalBtn.addEventListener('click', () => {
+                this.addGoal();
+            });
+        }
+        
+        document.querySelectorAll('[data-goal-index]').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.getAttribute('data-goal-index'));
+                this.updateGoal(index, e.target.value);
+            });
+        });
+        
+        document.querySelectorAll('[data-remove-index]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.getAttribute('data-remove-index'));
+                this.removeGoal(index);
+            });
+        });
     }
 }
 
