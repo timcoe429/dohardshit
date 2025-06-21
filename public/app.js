@@ -112,7 +112,39 @@ async loadChallenges(userId) {
         const completed = Object.values(todayProgress).filter(Boolean).length;
         return Math.round((completed / this.activeChallenge.goals.length) * 100);
     }
+    getCurrentChallengeDay() {
+    if (!this.activeChallenge) return 1;
     
+    const startDate = new Date(this.activeChallenge.created_at);
+    const today = new Date();
+    const timeDiff = today.getTime() - startDate.getTime();
+    const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1; // +1 because day 1 is the start date
+    
+    // Don't go beyond the challenge duration
+    return Math.min(dayDiff, this.activeChallenge.duration);
+}
+
+getChallengeProgress() {
+    if (!this.activeChallenge) return 0;
+    
+    const currentDay = this.getCurrentChallengeDay();
+    return Math.round((currentDay / this.activeChallenge.duration) * 100);
+}
+
+getChallengeStatus() {
+    const currentDay = this.getCurrentChallengeDay();
+    const duration = this.activeChallenge?.duration || 0;
+    
+    if (currentDay >= duration) {
+        return { status: 'completed', message: 'Challenge Complete! 🎉' };
+    } else if (currentDay > duration * 0.8) {
+        return { status: 'almost-done', message: 'Almost there!' };
+    } else if (currentDay > duration * 0.5) {
+        return { status: 'halfway', message: 'Halfway through!' };
+    } else {
+        return { status: 'early', message: 'Keep going!' };
+    }
+}
     async toggleGoal(goalIndex) {
         if (!this.currentUser || !this.activeChallenge) return;
         
@@ -550,11 +582,23 @@ async handleLogin(name) {
 
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                             <div class="p-6 border-b border-gray-200">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h2 class="text-xl font-bold text-gray-800 mb-2">${this.activeChallenge.name}</h2>
-                                        <p class="text-sm text-gray-600">Complete your daily goals to earn points</p>
-                                    </div>
+    <div class="flex items-center justify-between">
+        <div class="flex-1">
+            <div class="flex items-center space-x-3 mb-2">
+                <h2 class="text-xl font-bold text-gray-800">${this.activeChallenge.name}</h2>
+                <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+                    Day ${this.getCurrentChallengeDay()} of ${this.activeChallenge.duration}
+                </span>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">Complete your daily goals to earn points</p>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-300" 
+                     style="width: ${this.getChallengeProgress()}%"></div>
+            </div>
+            <p class="text-xs text-gray-500">${this.getChallengeProgress()}% complete</p>
+        </div>
                                     <button id="newChallengeBtn" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg transition-all duration-200">
                                         🚀 New Challenge
                                     </button>
