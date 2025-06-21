@@ -197,7 +197,10 @@ async loadUserStats(userId) {
 }
         
         // Update locally first for smooth UI
-        if (!this.dailyProgress[today]), this.dailyProgress[today] = {};
+        if (!this.dailyProgress[today]) {
+  this.dailyProgress[today] = {};
+}
+
         this.dailyProgress[today][goalIndex] = newCompleted;
         
         // Update UI immediately
