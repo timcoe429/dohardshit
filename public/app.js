@@ -71,7 +71,27 @@ async loadChallenges(userId) {
             return {};
         }
     }
+// === LEADERBOARD API METHODS ===
+async loadLeaderboard() {
+    try {
+        const response = await fetch('/api/leaderboard');
+        return await response.json();
+    } catch (err) {
+        console.error('Load leaderboard error:', err);
+        return [];
+    }
+}
 
+async loadUserStats(userId) {
+    try {
+        const response = await fetch(`/api/users/${userId}/stats`);
+        return await response.json();
+    } catch (err) {
+        console.error('Load user stats error:', err);
+        return { rank: 0, total_challenges: 0, total_completed_goals: 0, current_streak: 0 };
+    }
+}
+// === END LEADERBOARD API METHODS ===
     async updateProgress(userId, challengeId, date, goalIndex, completed) {
         try {
             const response = await fetch('/api/progress', {
@@ -347,18 +367,24 @@ async handleLogin(name) {
         this.userStats.totalPoints = user.total_points;
         this.currentScreen = 'dashboard';
         
-        // Load user's challenges with proper array handling
+        // Load user's data
         try {
-            const challengesData = await this.loadChallenges(user.id);
+            const [challengesData, statsData, leaderboardData] = await Promise.all([
+                this.loadChallenges(user.id),
+                this.loadUserStats(user.id),
+                this.loadLeaderboard()
+            ]);
+            
             this.challenges = Array.isArray(challengesData) ? challengesData : [];
-            this.userChallenges = [...this.challenges]; // Backup copy
+            this.userStats = { ...this.userStats, ...statsData };
+            this.leaderboard = leaderboardData;
             
             if (this.challenges.length > 0) {
                 this.activeChallenge = this.challenges[0];
                 await this.initTodayProgress();
             }
         } catch (err) {
-            console.error('Error loading challenges:', err);
+            console.error('Error loading user data:', err);
             this.challenges = [];
         }
         
@@ -488,7 +514,49 @@ async handleLogin(name) {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         this.attachModalEvents();
     }
+    // === LEADERBOARD RENDER METHOD ===
+renderLeaderboard() {
+    if (!this.showLeaderboard) return '';
     
+    return `
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="leaderboardModal">
+            <div class="bg-white rounded-xl p-6 w-full max-w-md" style="animation: slideInFromBottom 0.3s ease-out;">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">🏆 Leaderboard</h3>
+                    <button id="closeLeaderboardBtn" class="text-gray-400 hover:text-gray-600">✕</button>
+                </div>
+                
+                <div class="space-y-3 max-h-96 overflow-y-auto">
+                    ${this.leaderboard.map((user, index) => `
+                        <div class="flex items-center justify-between p-3 rounded-lg ${
+                            user.id === this.currentUser.id ? 'bg-blue-50 border-2 border-blue-200' : 'bg-gray-50'
+                        }">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                    index === 0 ? 'bg-yellow-400 text-yellow-900' :
+                                    index === 1 ? 'bg-gray-300 text-gray-700' :
+                                    index === 2 ? 'bg-amber-600 text-amber-100' :
+                                    'bg-gray-200 text-gray-600'
+                                }">
+                                    ${index < 3 ? ['🥇', '🥈', '🥉'][index] : index + 1}
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800">${user.name}</p>
+                                    <p class="text-xs text-gray-500">${user.total_challenges} challenges</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-blue-600">${user.total_points}</p>
+                                <p class="text-xs text-gray-500">points</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+// === END LEADERBOARD RENDER METHOD ===
     renderEmptyState() {
         return `
             <div class="text-center py-12">
@@ -523,9 +591,9 @@ async handleLogin(name) {
                             <div class="flex items-center space-x-4">
                                 <div class="text-right">
                                     <p class="text-sm font-semibold text-blue-600">${this.currentUser.total_points} points</p>
-                                    <p class="text-xs text-gray-500">Total earned</p>
+                                    <p class="text-xs text-gray-500">Rank #${this.userStats.rank || '?'}</p>
                                 </div>
-                                <button id="logoutBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                                <p class="text-xs text-gray-500">Rank #${this.userStats.rank || '?'}</p>
                                     <span>🚪</span>
                                 </button>
                             </div>
@@ -536,6 +604,7 @@ async handleLogin(name) {
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 animate-in slide-in-from-right-4">
                             ${this.renderEmptyState()}
                         </div>
+                        ${this.renderLeaderboard()}
                     </main>
                 </div>
             `;
@@ -696,28 +765,37 @@ async handleLogin(name) {
         });
     }
     
-    attachDashboardEvents() {
-        const logoutBtn = document.getElementById('logoutBtn');
-        const goalItems = document.querySelectorAll('.goal-item');
-        const newChallengeBtn = document.getElementById('newChallengeBtn');
-        
-        logoutBtn.addEventListener('click', () => {
-            this.handleLogout();
+attachDashboardEvents() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    const goalItems = document.querySelectorAll('.goal-item');
+    const newChallengeBtn = document.getElementById('newChallengeBtn');
+    const leaderboardBtn = document.getElementById('leaderboardBtn');
+    
+    logoutBtn.addEventListener('click', () => {
+        this.handleLogout();
+    });
+    
+    goalItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const goalIndex = parseInt(item.getAttribute('data-goal-index'));
+            this.toggleGoal(goalIndex);
         });
-        
-        goalItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const goalIndex = parseInt(item.getAttribute('data-goal-index'));
-                this.toggleGoal(goalIndex);
-            });
+    });
+    
+    if (newChallengeBtn) {
+        newChallengeBtn.addEventListener('click', () => {
+            this.showCreateChallengeModal();
         });
-        
-        if (newChallengeBtn) {
-            newChallengeBtn.addEventListener('click', () => {
-                this.showCreateChallengeModal();
-            });
-        }
     }
+    
+    if (leaderboardBtn) {
+        leaderboardBtn.addEventListener('click', () => {
+            this.showLeaderboardModal();
+        });
+    }
+    
+    this.attachLeaderboardEvents();
+}
     
     attachModalEvents() {
         const modal = document.getElementById('challengeModal');
@@ -785,7 +863,50 @@ async handleLogin(name) {
         });
     }
 }
+// === LEADERBOARD EVENT METHODS ===
+showLeaderboardModal() {
+    this.showLeaderboard = true;
+    this.renderLeaderboardModal();
+}
 
+hideLeaderboardModal() {
+    this.showLeaderboard = false;
+    const modal = document.getElementById('leaderboardModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+renderLeaderboardModal() {
+    const existingModal = document.getElementById('leaderboardModal');
+    if (existingModal) existingModal.remove();
+    
+    const modalHTML = this.renderLeaderboard();
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    this.attachLeaderboardEvents();
+}
+
+attachLeaderboardEvents() {
+    if (!this.showLeaderboard) return;
+    
+    const modal = document.getElementById('leaderboardModal');
+    const closeBtn = document.getElementById('closeLeaderboardBtn');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            this.hideLeaderboardModal();
+        });
+    }
+    
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.hideLeaderboardModal();
+            }
+        });
+    }
+}
+// === END LEADERBOARD EVENT METHODS ===
 // Initialize the app when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     new ChallengeApp();
