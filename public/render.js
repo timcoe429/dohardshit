@@ -104,7 +104,6 @@ class Renderer {
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 animate-in slide-in-from-right-4">
                             ${this.renderEmptyState()}
                         </div>
-                        ${this.renderLeaderboard()}
                     </main>
                 </div>
             `;
@@ -232,7 +231,6 @@ class Renderer {
                             </div>
                         </div>
                     </div>
-                    ${this.renderLeaderboard()}
                 </main>
             </div>
         `;
