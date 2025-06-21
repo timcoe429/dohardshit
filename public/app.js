@@ -4,6 +4,7 @@ class ChallengeApp {
         this.currentUser = null;
         this.currentScreen = 'login';
         this.challenges = [];
+        this.userChallenges = [];
         this.activeChallenge = null;
         this.dailyProgress = {};
         this.userStats = { totalPoints: 0 };
@@ -32,15 +33,16 @@ class ChallengeApp {
         }
     }
 
-    async loadChallenges(userId) {
-        try {
-            const response = await fetch(`/api/users/${userId}/challenges`);
-            return await response.json();
-        } catch (err) {
-            console.error('Load challenges error:', err);
-            return [];
-        }
+async loadChallenges(userId) {
+    try {
+        const response = await fetch(`/api/users/${userId}/challenges`);
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+    } catch (err) {
+        console.error('Load challenges error:', err);
+        return [];
     }
+}
 
     async createChallengeAPI(challengeData) {
         try {
@@ -203,29 +205,39 @@ class ChallengeApp {
         }
     }
     
-    async createChallenge() {
-        const name = this.newChallenge.name.trim();
-        const validGoals = this.newChallenge.goals.filter(g => g.trim());
+async createChallenge() {
+    const name = this.newChallenge.name.trim();
+    const validGoals = this.newChallenge.goals.filter(g => g.trim());
+    
+    if (name && validGoals.length > 0 && this.currentUser) {
+        const challengeData = {
+            user_id: this.currentUser.id,
+            name: name,
+            duration: this.newChallenge.duration,
+            goals: validGoals
+        };
         
-        if (name && validGoals.length > 0 && this.currentUser) {
-            const challengeData = {
-                user_id: this.currentUser.id,
-                name: name,
-                duration: this.newChallenge.duration,
-                goals: validGoals
-            };
-            
+        try {
             const challenge = await this.createChallengeAPI(challengeData);
             
             if (challenge) {
+                // Ensure challenges is always an array
+                if (!Array.isArray(this.challenges)) {
+                    this.challenges = [];
+                }
+                
                 this.challenges.push(challenge);
                 this.activeChallenge = challenge;
                 this.hideCreateChallengeModal();
                 await this.initTodayProgress();
                 this.render();
             }
+        } catch (err) {
+            console.error('Error creating challenge:', err);
+            alert('Failed to create challenge. Please try again.');
         }
     }
+}
     
     addGoal() {
         this.newChallenge.goals.push('');
@@ -272,23 +284,31 @@ class ChallengeApp {
         }
     }
     
-    async handleLogin(name) {
-        const user = await this.createUser(name);
-        if (user) {
-            this.currentUser = user;
-            this.userStats.totalPoints = user.total_points;
-            this.currentScreen = 'dashboard';
+async handleLogin(name) {
+    const user = await this.createUser(name);
+    if (user) {
+        this.currentUser = user;
+        this.userStats.totalPoints = user.total_points;
+        this.currentScreen = 'dashboard';
+        
+        // Load user's challenges with proper array handling
+        try {
+            const challengesData = await this.loadChallenges(user.id);
+            this.challenges = Array.isArray(challengesData) ? challengesData : [];
+            this.userChallenges = [...this.challenges]; // Backup copy
             
-            // Load user's challenges
-            this.challenges = await this.loadChallenges(user.id);
             if (this.challenges.length > 0) {
                 this.activeChallenge = this.challenges[0];
                 await this.initTodayProgress();
             }
-            
-            this.render();
+        } catch (err) {
+            console.error('Error loading challenges:', err);
+            this.challenges = [];
         }
+        
+        this.render();
     }
+}
     
     handleLogout() {
         this.currentUser = null;
