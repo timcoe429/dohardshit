@@ -310,48 +310,7 @@ class Renderer {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         this.app.eventHandler.attachModalEvents();
     }
-    
-    renderLeaderboard() {
-        if (!this.app.showLeaderboard) return '';
-        
-        return `
-            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="leaderboardModal">
-                <div class="bg-white rounded-xl p-6 w-full max-w-md" style="animation: slideInFromBottom 0.3s ease-out;">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold text-gray-800">🏆 Leaderboard</h3>
-                        <button id="closeLeaderboardBtn" class="text-gray-400 hover:text-gray-600">✕</button>
-                    </div>
-                    
-                    <div class="space-y-3 max-h-96 overflow-y-auto">
-                        ${this.app.leaderboard.map((user, index) => `
-                            <div class="flex items-center justify-between p-3 rounded-lg ${
-                                user.id === this.app.currentUser.id ? 'bg-blue-50 border-2 border-blue-200' : 'bg-gray-50'
-                            }">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                                        index === 0 ? 'bg-yellow-400 text-yellow-900' :
-                                        index === 1 ? 'bg-gray-300 text-gray-700' :
-                                        index === 2 ? 'bg-amber-600 text-amber-100' :
-                                        'bg-gray-200 text-gray-600'
-                                    }">
-                                        ${index < 3 ? ['🥇', '🥈', '🥉'][index] : index + 1}
-                                    </div>
-                                    <div>
-                                        <p class="font-semibold text-gray-800">${user.name}</p>
-                                        <p class="text-xs text-gray-500">${user.total_challenges} challenges</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="font-bold text-blue-600">${user.total_points}</p>
-                                    <p class="text-xs text-gray-500">points</p>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
+
     
     updateGoalItem(goalIndex) {
         const goalElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
