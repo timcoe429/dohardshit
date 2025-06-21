@@ -51,8 +51,6 @@ class EventHandler {
                 this.app.showLeaderboardModal();
             });
         }
-        
-        this.attachLeaderboardEvents();
     }
     
     attachModalEvents() {
@@ -119,26 +117,5 @@ class EventHandler {
                 this.app.removeGoal(index);
             });
         });
-    }
-    
-    attachLeaderboardEvents() {
-        if (!this.app.showLeaderboard) return;
-        
-        const modal = document.getElementById('leaderboardModal');
-        const closeBtn = document.getElementById('closeLeaderboardBtn');
-        
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                this.app.hideLeaderboardModal();
-            });
-        }
-        
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    this.app.hideLeaderboardModal();
-                }
-            });
-        }
     }
 }
