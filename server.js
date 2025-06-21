@@ -162,7 +162,94 @@ app.post('/api/progress', async (req, res) => {
     res.status(500).json({ error: 'Failed to update progress' });
   }
 });
+// Get leaderboard
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.total_points,
+        COUNT(DISTINCT c.id) as total_challenges,
+        COUNT(CASE WHEN dp.completed = true THEN 1 END) as total_completed_goals,
+        MAX(c.created_at) as last_active
+      FROM users u
+      LEFT JOIN challenges c ON u.id = c.user_id
+      LEFT JOIN daily_progress dp ON u.id = dp.user_id
+      GROUP BY u.id, u.name, u.total_points
+      ORDER BY u.total_points DESC, u.name ASC
+      LIMIT 10
+    `);
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get leaderboard error:', err);
+    res.status(500).json({ error: 'Failed to get leaderboard' });
+  }
+});
 
+// Get user stats for profile
+app.get('/api/users/:userId/stats', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Get user's rank
+    const rankResult = await pool.query(`
+      WITH user_ranks AS (
+        SELECT id, total_points, 
+               ROW_NUMBER() OVER (ORDER BY total_points DESC, name ASC) as rank
+        FROM users
+      )
+      SELECT rank FROM user_ranks WHERE id = $1
+    `, [userId]);
+    
+    // Get user's challenge count
+    const challengeResult = await pool.query(
+      'SELECT COUNT(*) as challenge_count FROM challenges WHERE user_id = $1',
+      [userId]
+    );
+    
+    // Get user's total completed goals
+    const goalsResult = await pool.query(
+      'SELECT COUNT(*) as completed_goals FROM daily_progress WHERE user_id = $1 AND completed = true',
+      [userId]
+    );
+    
+    // Get current streak (consecutive days with at least one goal completed)
+    const streakResult = await pool.query(`
+      WITH daily_activity AS (
+        SELECT 
+          date,
+          CASE WHEN COUNT(CASE WHEN completed = true THEN 1 END) > 0 THEN 1 ELSE 0 END as has_activity
+        FROM daily_progress 
+        WHERE user_id = $1 
+        GROUP BY date
+        ORDER BY date DESC
+      ),
+      streak_calc AS (
+        SELECT 
+          date,
+          has_activity,
+          ROW_NUMBER() OVER (ORDER BY date DESC) - 
+          ROW_NUMBER() OVER (PARTITION BY has_activity ORDER BY date DESC) as grp
+        FROM daily_activity
+      )
+      SELECT COUNT(*) as current_streak
+      FROM streak_calc
+      WHERE has_activity = 1 AND grp = 0
+    `, [userId]);
+    
+    res.json({
+      rank: rankResult.rows[0]?.rank || 0,
+      total_challenges: parseInt(challengeResult.rows[0]?.challenge_count || 0),
+      total_completed_goals: parseInt(goalsResult.rows[0]?.completed_goals || 0),
+      current_streak: parseInt(streakResult.rows[0]?.current_streak || 0)
+    });
+  } catch (err) {
+    console.error('Get user stats error:', err);
+    res.status(500).json({ error: 'Failed to get user stats' });
+  }
+});
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running with database!' });
