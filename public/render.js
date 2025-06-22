@@ -90,10 +90,13 @@ class Renderer {
                                     <p class="text-sm font-semibold text-blue-600">${this.app.currentUser.total_points} points</p>
                                     <p class="text-xs text-gray-500">Rank #${this.app.userStats.rank || '?'}</p>
                                 </div>
-                                <button id="leaderboardBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                                <button id="userMgmtBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Manage Users">
+                                    <span>👥</span>
+                                </button>
+                                <button id="leaderboardBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Leaderboard">
                                     <span>🏅</span>
                                 </button>
-                                <button id="logoutBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                                <button id="logoutBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Logout">
                                     <span>🚪</span>
                                 </button>
                             </div>
@@ -131,10 +134,13 @@ class Renderer {
                                 <p class="text-sm font-semibold text-blue-600">${this.app.currentUser.total_points} points</p>
                                 <p class="text-xs text-gray-500">Total earned</p>
                             </div>
-                            <button id="leaderboardBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                            <button id="userMgmtBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Manage Users">
+                                <span>👥</span>
+                            </button>
+                            <button id="leaderboardBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Leaderboard">
                                 <span>🏅</span>
                             </button>
-                            <button id="logoutBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                            <button id="logoutBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Logout">
                                 <span>🚪</span>
                             </button>
                         </div>
@@ -188,7 +194,7 @@ class Renderer {
                                         <p class="text-sm text-gray-600 mb-3">Complete your daily goals to earn points</p>
                                         
                                         <!-- Progress Bar -->
-                                        <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                                        <div class="progress-bar-container bg-gray-200 rounded-full h-2 mb-1" style="width: 90%; max-width: 400px;">
                                             <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-300" 
                                                  style="width: ${this.app.challengeManager.getChallengeProgress()}%"></div>
                                         </div>
@@ -310,7 +316,6 @@ class Renderer {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         this.app.eventHandler.attachModalEvents();
     }
-
     
     updateGoalItem(goalIndex) {
         const goalElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
