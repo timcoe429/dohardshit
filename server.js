@@ -446,9 +446,34 @@ app.get('/api/challenges/code/:inviteCode', async (req, res) => {
   }
 });
 // === END SHARED CHALLENGE API ENDPOINTS ===
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running with database!' });
+});
+
+// Delete user endpoint
+app.delete('/api/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Delete user's progress
+    await pool.query('DELETE FROM daily_progress WHERE user_id = $1', [userId]);
+    
+    // Delete from challenge participants
+    await pool.query('DELETE FROM challenge_participants WHERE user_id = $1', [userId]);
+    
+    // Delete user's challenges
+    await pool.query('DELETE FROM challenges WHERE created_by = $1', [userId]);
+    
+    // Delete user
+    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
 });
 
 // Serve the main app
@@ -461,26 +486,4 @@ initDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} with database connection`);
   });
-  // Add this to your server.js file
-
-// Delete user endpoint (admin only)
-app.delete('/api/users/:userId', async (req, res) => {
-    try {
-        const { userId } = req.params;
-        
-        // Delete user's progress
-        await db.run('DELETE FROM progress WHERE user_id = ?', [userId]);
-        
-        // Delete user's challenges
-        await db.run('DELETE FROM challenges WHERE user_id = ?', [userId]);
-        
-        // Delete user
-        await db.run('DELETE FROM users WHERE id = ?', [userId]);
-        
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Delete user error:', error);
-        res.status(500).json({ error: 'Failed to delete user' });
-    }
-});
 });
