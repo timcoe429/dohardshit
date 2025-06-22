@@ -134,6 +134,9 @@ class Renderer {
                                 <p class="text-sm font-semibold text-blue-600">${this.app.currentUser.total_points} points</p>
                                 <p class="text-xs text-gray-500">Total earned</p>
                             </div>
+                            <button id="statsBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="My Stats">
+                                <span>📊</span>
+                            </button>
                             <button id="userMgmtBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Manage Users">
                                 <span>👥</span>
                             </button>
