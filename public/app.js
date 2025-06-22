@@ -106,8 +106,10 @@ class ChallengeApp {
     }
     
     // User Management Methods
-    showUserManagement() {
+    async showUserManagement() {
         this.showUserMgmt = true;
+        // Reload leaderboard data before showing modal
+        this.leaderboard = await this.loadLeaderboard();
         this.renderUserManagementModal();
     }
     
