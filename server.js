@@ -452,7 +452,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running with database!' });
 });
 
-// Delete user endpoint
 app.delete('/api/users/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -460,11 +459,8 @@ app.delete('/api/users/:userId', async (req, res) => {
     // Delete user's progress
     await pool.query('DELETE FROM daily_progress WHERE user_id = $1', [userId]);
     
-    // Delete from challenge participants
-    await pool.query('DELETE FROM challenge_participants WHERE user_id = $1', [userId]);
-    
-    // Delete user's challenges
-    await pool.query('DELETE FROM challenges WHERE created_by = $1', [userId]);
+    // Delete user's challenges (using user_id, not created_by)
+    await pool.query('DELETE FROM challenges WHERE user_id = $1', [userId]);
     
     // Delete user
     await pool.query('DELETE FROM users WHERE id = $1', [userId]);
