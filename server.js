@@ -39,25 +39,11 @@ async function initDB() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS challenges (
         id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
         name VARCHAR(255) NOT NULL,
         duration INTEGER NOT NULL,
-        start_date DATE NOT NULL,
-        end_date DATE NOT NULL,
-        invite_code VARCHAR(10) UNIQUE,
-        is_public BOOLEAN DEFAULT true,
-        created_by INTEGER REFERENCES users(id),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS challenge_participants (
-        id SERIAL PRIMARY KEY,
-        challenge_id INTEGER REFERENCES challenges(id),
-        user_id INTEGER REFERENCES users(id),
         goals TEXT[] NOT NULL,
-        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(challenge_id, user_id)
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -71,19 +57,6 @@ async function initDB() {
         completed BOOLEAN DEFAULT FALSE,
         UNIQUE(user_id, challenge_id, date, goal_index)
       )
-    `);
-
-    // Create a default public challenge
-    await pool.query(`
-      INSERT INTO challenges (name, duration, start_date, end_date, invite_code, created_by)
-      SELECT 
-        'January 2025 Challenge',
-        30,
-        '2025-01-01',
-        '2025-01-30',
-        'JAN2025',
-        1
-      WHERE NOT EXISTS (SELECT 1 FROM challenges WHERE invite_code = 'JAN2025')
     `);
 
     console.log('Database tables initialized');
