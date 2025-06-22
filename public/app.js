@@ -1,4 +1,11 @@
-// app.js - Main controller (now only ~200 lines!)
+// Stats methods
+    showStatsModal() {
+        this.statsManager.showModal();
+    }
+    
+    hideStatsModal() {
+        this.statsManager.hideModal();
+    }// app.js - Main controller (now only ~200 lines!)
 class ChallengeApp {
     constructor() {
         // State
@@ -28,6 +35,7 @@ class ChallengeApp {
         this.renderer = new Renderer(this);
         this.eventHandler = new EventHandler(this);
         this.leaderboardManager = new LeaderboardManager(this);
+        this.statsManager = new StatsManager(this);
         
         this.init();
         
