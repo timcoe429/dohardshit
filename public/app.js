@@ -19,6 +19,7 @@ class ChallengeApp {
         this.newChallenge = { name: '', duration: 7, goals: [''] };
         this.leaderboard = [];
         this.showLeaderboard = false;
+        this.showUserMgmt = false;
         
         // Initialize managers
         this.authManager = new AuthManager(this);
@@ -29,6 +30,9 @@ class ChallengeApp {
         this.leaderboardManager = new LeaderboardManager(this);
         
         this.init();
+        
+        // Make app globally accessible
+        window.app = this;
     }
     
     init() {
@@ -99,6 +103,92 @@ class ChallengeApp {
 
     hideLeaderboardModal() {
         this.leaderboardManager.hideModal();
+    }
+    
+    // User Management Methods
+    showUserManagement() {
+        this.showUserMgmt = true;
+        this.renderUserManagementModal();
+    }
+    
+    hideUserManagement() {
+        this.showUserMgmt = false;
+        const modal = document.getElementById('userMgmtModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+    
+    async deleteUser(userId) {
+        if (!confirm('Are you sure you want to delete this user? This cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                // Reload leaderboard
+                this.leaderboard = await this.loadLeaderboard();
+                this.hideUserManagement();
+                this.showUserManagement(); // Re-render
+            }
+        } catch (err) {
+            console.error('Delete user error:', err);
+            alert('Failed to delete user');
+        }
+    }
+    
+    renderUserManagementModal() {
+        const existingModal = document.getElementById('userMgmtModal');
+        if (existingModal) existingModal.remove();
+        
+        const modalHTML = `
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="userMgmtModal">
+                <div class="bg-white rounded-xl p-6 w-full max-w-md" style="animation: slideInFromBottom 0.3s ease-out;">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">👥 Manage Users</h3>
+                        <button id="closeUserMgmtBtn" class="text-gray-400 hover:text-gray-600">✕</button>
+                    </div>
+                    
+                    <div class="space-y-3 max-h-96 overflow-y-auto">
+                        ${this.leaderboard.map(user => `
+                            <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                                <div>
+                                    <p class="font-semibold text-gray-800">${user.name}</p>
+                                    <p class="text-xs text-gray-500">${user.total_points} points</p>
+                                </div>
+                                <button 
+                                    onclick="window.app.deleteUser(${user.id})"
+                                    class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                                    ${user.id === this.currentUser.id ? 'disabled' : ''}
+                                >
+                                    ${user.id === this.currentUser.id ? 'You' : 'Delete'}
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Attach events
+        const modal = document.getElementById('userMgmtModal');
+        const closeBtn = document.getElementById('closeUserMgmtBtn');
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.hideUserManagement());
+        }
+        
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) this.hideUserManagement();
+            });
+        }
     }
 }
 
