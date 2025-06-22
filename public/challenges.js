@@ -65,11 +65,23 @@ class ChallengeManager {
     getCurrentChallengeDay() {
         if (!this.app.activeChallenge) return 1;
         
-        const startDate = new Date(this.app.activeChallenge.created_at);
+        const createdAt = new Date(this.app.activeChallenge.created_at);
         const today = new Date();
-        const timeDiff = today.getTime() - startDate.getTime();
+        
+        // Convert both to EST midnight for accurate day calculation
+        const estOffset = -5; // EST is UTC-5
+        
+        // Get dates at midnight EST
+        const startDate = new Date(createdAt);
+        startDate.setUTCHours(estOffset, 0, 0, 0);
+        
+        const currentDate = new Date(today);
+        currentDate.setUTCHours(estOffset, 0, 0, 0);
+        
+        const timeDiff = currentDate.getTime() - startDate.getTime();
         const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
         
+        // Don't go beyond the challenge duration
         return Math.min(dayDiff, this.app.activeChallenge.duration);
     }
     
