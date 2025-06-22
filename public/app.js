@@ -1,11 +1,4 @@
-// Stats methods
-    showStatsModal() {
-        this.statsManager.showModal();
-    }
-    
-    hideStatsModal() {
-        this.statsManager.hideModal();
-    }// app.js - Main controller (now only ~200 lines!)
+// app.js - Main controller (now only ~200 lines!)
 class ChallengeApp {
     constructor() {
         // State
@@ -111,6 +104,15 @@ class ChallengeApp {
 
     hideLeaderboardModal() {
         this.leaderboardManager.hideModal();
+    }
+    
+    // Stats methods
+    showStatsModal() {
+        this.statsManager.showModal();
+    }
+    
+    hideStatsModal() {
+        this.statsManager.hideModal();
     }
     
     // User Management Methods
