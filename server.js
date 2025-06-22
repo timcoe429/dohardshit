@@ -461,4 +461,26 @@ initDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} with database connection`);
   });
+  // Add this to your server.js file
+
+// Delete user endpoint (admin only)
+app.delete('/api/users/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        // Delete user's progress
+        await db.run('DELETE FROM progress WHERE user_id = ?', [userId]);
+        
+        // Delete user's challenges
+        await db.run('DELETE FROM challenges WHERE user_id = ?', [userId]);
+        
+        // Delete user
+        await db.run('DELETE FROM users WHERE id = ?', [userId]);
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Delete user error:', error);
+        res.status(500).json({ error: 'Failed to delete user' });
+    }
+});
 });
