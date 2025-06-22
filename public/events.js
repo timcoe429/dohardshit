@@ -28,6 +28,7 @@ class EventHandler {
         const goalItems = document.querySelectorAll('.goal-item');
         const newChallengeBtn = document.getElementById('newChallengeBtn');
         const leaderboardBtn = document.getElementById('leaderboardBtn');
+        const userMgmtBtn = document.getElementById('userMgmtBtn');
         
         logoutBtn.addEventListener('click', () => {
             this.app.authManager.handleLogout();
@@ -49,6 +50,12 @@ class EventHandler {
         if (leaderboardBtn) {
             leaderboardBtn.addEventListener('click', () => {
                 this.app.showLeaderboardModal();
+            });
+        }
+        
+        if (userMgmtBtn) {
+            userMgmtBtn.addEventListener('click', () => {
+                this.app.showUserManagement();
             });
         }
     }
