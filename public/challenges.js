@@ -66,19 +66,25 @@ class ChallengeManager {
         if (!this.app.activeChallenge) return 1;
         
         const createdAt = new Date(this.app.activeChallenge.created_at);
-        const today = new Date();
+        const now = new Date();
         
-        // Convert both to EST midnight for accurate day calculation
-        const estOffset = -5; // EST is UTC-5
+        // Convert to EST (UTC-5)
+        const estOffset = -5 * 60; // -5 hours in minutes
         
-        // Get dates at midnight EST
-        const startDate = new Date(createdAt);
-        startDate.setUTCHours(estOffset, 0, 0, 0);
+        // Get current time in EST
+        const nowUTC = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const nowEST = new Date(nowUTC + (estOffset * 60000));
         
-        const currentDate = new Date(today);
-        currentDate.setUTCHours(estOffset, 0, 0, 0);
+        // Get created time in EST  
+        const createdUTC = createdAt.getTime() + (createdAt.getTimezoneOffset() * 60000);
+        const createdEST = new Date(createdUTC + (estOffset * 60000));
         
-        const timeDiff = currentDate.getTime() - startDate.getTime();
+        // Set both to midnight EST for day calculation
+        createdEST.setHours(0, 0, 0, 0);
+        nowEST.setHours(0, 0, 0, 0);
+        
+        // Calculate difference in days
+        const timeDiff = nowEST.getTime() - createdEST.getTime();
         const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
         
         // Don't go beyond the challenge duration
