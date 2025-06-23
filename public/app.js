@@ -108,7 +108,7 @@ class ChallengeApp {
     
     // Stats methods
     showStatsModal() {
-    await this.statsManager.showModal();
+    this.statsManager.showModal().catch(console.error);
 }
     
     hideStatsModal() {
