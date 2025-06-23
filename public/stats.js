@@ -3,31 +3,44 @@ class StatsManager {
     constructor(app) {
         this.app = app;
         this.showStats = false;
-    }
-
-async loadDailyProgress() {
-    try {
-        // Get last 7 days of data
-        const days = [];
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
-            
-            const response = await fetch(`/api/progress/${this.app.currentUser.id}/${this.app.activeChallenge.id}/${dateStr}`);
-            const progress = await response.json();
-            
-            // Count completed goals for this day
-            const completed = Object.values(progress).filter(Boolean).length;
-            days.push(completed);
-        }
-        
-        this.dailyData = days;
-    } catch (err) {
-        console.error('Load daily progress error:', err);
         this.dailyData = [0, 0, 0, 0, 0, 0, 0];
     }
-}
+
+    async showModal() {
+        this.showStats = true;
+        await this.loadDailyProgress();
+        this.renderModal();
+    }
+
+    async loadDailyProgress() {
+        try {
+            // Check if we have an active challenge
+            if (!this.app.activeChallenge) {
+                this.dailyData = [0, 0, 0, 0, 0, 0, 0];
+                return;
+            }
+            
+            // Get last 7 days of data
+            const days = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                const response = await fetch(`/api/progress/${this.app.currentUser.id}/${this.app.activeChallenge.id}/${dateStr}`);
+                const progress = await response.json();
+                
+                // Count completed goals for this day
+                const completed = Object.values(progress).filter(Boolean).length;
+                days.push(completed);
+            }
+            
+            this.dailyData = days;
+        } catch (err) {
+            console.error('Load daily progress error:', err);
+            this.dailyData = [0, 0, 0, 0, 0, 0, 0];
+        }
+    }
 
     hideModal() {
         this.showStats = false;
@@ -88,9 +101,8 @@ async loadDailyProgress() {
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const today = new Date().getDay();
         
-        // Generate some demo data for now
-        // Get real data - for now just show zeros since we need to fetch from database
-const data = [0, 0, 0, 0, 0, 0, 0];
+        // Use real data from loadDailyProgress
+        const data = this.dailyData || [0, 0, 0, 0, 0, 0, 0];
         const maxValue = Math.max(...data, 5);
         
         let barsHTML = '';
