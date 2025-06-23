@@ -4,6 +4,15 @@ class ProgressManager {
         this.app = app;
     }
     
+    // Helper method to get EST date
+    getESTDate() {
+        const now = new Date();
+        const estOffset = -5; // EST is UTC-5 (use -4 for EDT during daylight saving)
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const estTime = new Date(utc + (3600000 * estOffset));
+        return estTime.toISOString().split('T')[0];
+    }
+    
     async loadDailyProgress(userId, challengeId, date) {
         try {
             const response = await fetch(`/api/progress/${userId}/${challengeId}/${date}`);
@@ -16,13 +25,16 @@ class ProgressManager {
     
     async updateProgress(userId, challengeId, date, goalIndex, completed) {
         try {
+            // Ensure date is in EST format
+            const estDate = date.includes('T') ? date.split('T')[0] : date;
+            
             const response = await fetch('/api/progress', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     user_id: userId,
                     challenge_id: challengeId,
-                    date,
+                    date: estDate,
                     goal_index: goalIndex,
                     completed
                 })
@@ -37,7 +49,7 @@ class ProgressManager {
     async initTodayProgress() {
         if (!this.app.activeChallenge || !this.app.currentUser) return;
         
-        const today = new Date().toISOString().split('T')[0];
+        const today = this.getESTDate();
         const progress = await this.loadDailyProgress(
             this.app.currentUser.id, 
             this.app.activeChallenge.id, 
@@ -47,7 +59,7 @@ class ProgressManager {
     }
     
     getTodayProgress() {
-        const today = new Date().toISOString().split('T')[0];
+        const today = this.getESTDate();
         return this.app.dailyProgress[today] || {};
     }
     
@@ -66,7 +78,7 @@ class ProgressManager {
     async toggleGoal(goalIndex) {
         if (!this.app.currentUser || !this.app.activeChallenge) return;
         
-        const today = new Date().toISOString().split('T')[0];
+        const today = this.getESTDate();
         const todayProgress = this.getTodayProgress() || {};
         const wasCompleted = todayProgress[goalIndex] || false;
         const newCompleted = !wasCompleted;
