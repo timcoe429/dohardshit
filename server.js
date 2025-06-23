@@ -1,13 +1,3 @@
-app.post('/api/progress', async (req, res) => {
-  try {
-    const { user_id, challenge_id, date, goal_index, completed } = req.body;
-    
-    // DEBUG LOGGING
-    console.log('=== PROGRESS UPDATE DEBUG ===');
-    console.log('Received date from frontend:', date);
-    console.log('All parameters:', { user_id, challenge_id, date, goal_index, completed });
-    
-    // Rest of your existing code...
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
@@ -119,6 +109,14 @@ app.get('/api/users/:userId/challenges', async (req, res) => {
 app.post('/api/challenges', async (req, res) => {
   try {
     const { user_id, name, duration, goals } = req.body;
+    app.post('/api/progress', async (req, res) => {
+  try {
+    const { user_id, challenge_id, date, goal_index, completed } = req.body;
+    // ADD THESE 3 LINES HERE:
+    console.log('=== PROGRESS UPDATE DEBUG ===');
+    console.log('Received date from frontend:', date);
+    console.log('All parameters:', { user_id, challenge_id, date, goal_index, completed });
+    // Then the rest of your existing code continues...
     const result = await pool.query(
       'INSERT INTO challenges (user_id, name, duration, goals) VALUES ($1, $2, $3, $4) RETURNING *',
       [user_id, name, duration, goals]
