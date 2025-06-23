@@ -6,15 +6,19 @@ class ProgressManager {
    
    // Helper method to get EST/EDT date
    getESTDate() {
-       const now = new Date();
-       console.log('Current browser time:', now.toString());
+       alert('getESTDate called!');
        
-       // For EDT (summer time), we need UTC-4
-       const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-       const edtTime = new Date(utcTime - (4 * 3600000)); // EDT is UTC-4
+       // Create a date in Eastern Time
+       const easternTime = new Date().toLocaleString("en-US", {timeZone: "America/New_York"});
+       const etDate = new Date(easternTime);
        
-       const dateString = edtTime.toISOString().split('T')[0];
-       console.log('Calculated EDT date:', dateString);
+       // Format as YYYY-MM-DD
+       const year = etDate.getFullYear();
+       const month = String(etDate.getMonth() + 1).padStart(2, '0');
+       const day = String(etDate.getDate()).padStart(2, '0');
+       
+       const dateString = `${year}-${month}-${day}`;
+       alert('Eastern Time date: ' + dateString);
        
        return dateString;
    }
