@@ -5,13 +5,20 @@ class ProgressManager {
     }
     
     // Helper method to get EST date
-    getESTDate() {
-        const now = new Date();
-        const estOffset = -5; // EST is UTC-5 (use -4 for EDT during daylight saving)
-        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-        const estTime = new Date(utc + (3600000 * estOffset));
-        return estTime.toISOString().split('T')[0];
-    }
+// Helper method to get EST/EDT date
+getESTDate() {
+    const now = new Date();
+    // Check if we're in daylight saving time (EDT = UTC-4, EST = UTC-5)
+    const jan = new Date(now.getFullYear(), 0, 1);
+    const jul = new Date(now.getFullYear(), 6, 1);
+    const stdOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+    const isDST = now.getTimezoneOffset() < stdOffset;
+    const estOffset = isDST ? -4 : -5;
+    
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const estTime = new Date(utc + (3600000 * estOffset));
+    return estTime.toISOString().split('T')[0];
+}
     
     async loadDailyProgress(userId, challengeId, date) {
         try {
