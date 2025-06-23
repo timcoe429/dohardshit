@@ -4,21 +4,23 @@ class ProgressManager {
         this.app = app;
     }
     
-    // Helper method to get EST/EDT date
-    getESTDate() {
-        // Create a date in Eastern Time
-        const easternTime = new Date().toLocaleString("en-US", {timeZone: "America/New_York"});
-        const etDate = new Date(easternTime);
-        
-        // Format as YYYY-MM-DD
-        const year = etDate.getFullYear();
-        const month = String(etDate.getMonth() + 1).padStart(2, '0');
-        const day = String(etDate.getDate()).padStart(2, '0');
-        
-        const dateString = `${year}-${month}-${day}`;
-        
-        return dateString;
-    }
+   // Helper method to get EST/EDT date
+getESTDate() {
+    // Get the current date in Eastern Time directly
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    
+    const parts = formatter.formatToParts(new Date());
+    const year = parts.find(p => p.type === 'year').value;
+    const month = parts.find(p => p.type === 'month').value;
+    const day = parts.find(p => p.type === 'day').value;
+    
+    return `${year}-${month}-${day}`;
+}
     
     async loadDailyProgress(userId, challengeId, date) {
         try {
