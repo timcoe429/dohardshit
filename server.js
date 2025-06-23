@@ -146,6 +146,15 @@ app.post('/api/progress', async (req, res) => {
   try {
     const { user_id, challenge_id, date, goal_index, completed } = req.body;
     
+    // Check if this goal was already completed before updating
+    const existingResult = await pool.query(
+      'SELECT completed FROM daily_progress WHERE user_id = $1 AND challenge_id = $2 AND date = $3 AND goal_index = $4',
+      [user_id, challenge_id, date, goal_index]
+    );
+    
+    const wasAlreadyCompleted = existingResult.rows.length > 0 ? existingResult.rows[0].completed : false;
+    
+    // Insert or update the progress
     await pool.query(
       `INSERT INTO daily_progress (user_id, challenge_id, date, goal_index, completed) 
        VALUES ($1, $2, $3, $4, $5) 
@@ -154,12 +163,14 @@ app.post('/api/progress', async (req, res) => {
       [user_id, challenge_id, date, goal_index, completed]
     );
     
-    // Update user's total points
-    const pointChange = completed ? 1 : -1;
-    await pool.query(
-      'UPDATE users SET total_points = GREATEST(0, total_points + $1) WHERE id = $2',
-      [pointChange, user_id]
-    );
+    // Only update total points if the completion status actually changed
+    if (completed !== wasAlreadyCompleted) {
+      const pointChange = completed ? 1 : -1;
+      await pool.query(
+        'UPDATE users SET total_points = GREATEST(0, total_points + $1) WHERE id = $2',
+        [pointChange, user_id]
+      );
+    }
     
     res.json({ success: true });
   } catch (err) {
