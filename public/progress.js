@@ -1,121 +1,117 @@
 // progress.js - Handle all progress tracking
 class ProgressManager {
-    constructor(app) {
-        this.app = app;
-    }
-    
-    // Helper method to get EST date
-// Helper method to get EST/EDT date
-getESTDate() {
-    const now = new Date();
-    // Check if we're in daylight saving time (EDT = UTC-4, EST = UTC-5)
-    const jan = new Date(now.getFullYear(), 0, 1);
-    const jul = new Date(now.getFullYear(), 6, 1);
-    const stdOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
-    const isDST = now.getTimezoneOffset() < stdOffset;
-    const estOffset = isDST ? -4 : -5;
-    
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const estTime = new Date(utc + (3600000 * estOffset));
-    return estTime.toISOString().split('T')[0];
-}
-    
-    async loadDailyProgress(userId, challengeId, date) {
-        try {
-            const response = await fetch(`/api/progress/${userId}/${challengeId}/${date}`);
-            return await response.json();
-        } catch (err) {
-            console.error('Load progress error:', err);
-            return {};
-        }
-    }
-    
-    async updateProgress(userId, challengeId, date, goalIndex, completed) {
-        try {
-            // Ensure date is in EST format
-            const estDate = date.includes('T') ? date.split('T')[0] : date;
-            
-            const response = await fetch('/api/progress', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    challenge_id: challengeId,
-                    date: estDate,
-                    goal_index: goalIndex,
-                    completed
-                })
-            });
-            return await response.json();
-        } catch (err) {
-            console.error('Update progress error:', err);
-            return null;
-        }
-    }
-    
-    async initTodayProgress() {
-        if (!this.app.activeChallenge || !this.app.currentUser) return;
-        
-        const today = this.getESTDate();
-        const progress = await this.loadDailyProgress(
-            this.app.currentUser.id, 
-            this.app.activeChallenge.id, 
-            today
-        );
-        this.app.dailyProgress[today] = progress;
-    }
-    
-    getTodayProgress() {
-        const today = this.getESTDate();
-        return this.app.dailyProgress[today] || {};
-    }
-    
-    getTodayPoints() {
-        const todayProgress = this.getTodayProgress();
-        return Object.values(todayProgress).filter(Boolean).length;
-    }
-    
-    getCompletionPercentage() {
-        if (!this.app.activeChallenge) return 0;
-        const todayProgress = this.getTodayProgress();
-        const completed = Object.values(todayProgress).filter(Boolean).length;
-        return Math.round((completed / this.app.activeChallenge.goals.length) * 100);
-    }
-    
-    async toggleGoal(goalIndex) {
-        if (!this.app.currentUser || !this.app.activeChallenge) return;
-        
-        const today = this.getESTDate();
-        const todayProgress = this.getTodayProgress() || {};
-        const wasCompleted = todayProgress[goalIndex] || false;
-        const newCompleted = !wasCompleted;
-        
-        // Update locally first for smooth UI
-        if (!this.app.dailyProgress[today]) {
-            this.app.dailyProgress[today] = {};
-        }
-        
-        this.app.dailyProgress[today][goalIndex] = newCompleted;
-        
-        // Update UI immediately
-        this.app.renderer.updateGoalItem(goalIndex);
-        
-        // Save to database
-        await this.updateProgress(
-            this.app.currentUser.id,
-            this.app.activeChallenge.id,
-            today,
-            goalIndex,
-            newCompleted
-        );
-        
-        // Update user stats
-        if (newCompleted) {
-            this.app.currentUser.total_points++;
-        } else {
-            this.app.currentUser.total_points = Math.max(0, this.app.currentUser.total_points - 1);
-        }
-        
-        this.app.renderer.updateStats();
-    }
+   constructor(app) {
+       this.app = app;
+   }
+   
+   // Helper method to get EST/EDT date
+   getESTDate() {
+       const now = new Date();
+       console.log('Current browser time:', now.toString());
+       
+       // For EDT (summer time), we need UTC-4
+       const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+       const edtTime = new Date(utcTime - (4 * 3600000)); // EDT is UTC-4
+       
+       const dateString = edtTime.toISOString().split('T')[0];
+       console.log('Calculated EDT date:', dateString);
+       
+       return dateString;
+   }
+   
+   async loadDailyProgress(userId, challengeId, date) {
+       try {
+           const response = await fetch(`/api/progress/${userId}/${challengeId}/${date}`);
+           return await response.json();
+       } catch (err) {
+           console.error('Load progress error:', err);
+           return {};
+       }
+   }
+   
+   async updateProgress(userId, challengeId, date, goalIndex, completed) {
+       try {
+           const response = await fetch('/api/progress', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({
+                   user_id: userId,
+                   challenge_id: challengeId,
+                   date,
+                   goal_index: goalIndex,
+                   completed
+               })
+           });
+           return await response.json();
+       } catch (err) {
+           console.error('Update progress error:', err);
+           return null;
+       }
+   }
+   
+   async initTodayProgress() {
+       if (!this.app.activeChallenge || !this.app.currentUser) return;
+       
+       const today = this.getESTDate();
+       const progress = await this.loadDailyProgress(
+           this.app.currentUser.id, 
+           this.app.activeChallenge.id, 
+           today
+       );
+       this.app.dailyProgress[today] = progress;
+   }
+   
+   getTodayProgress() {
+       const today = this.getESTDate();
+       return this.app.dailyProgress[today] || {};
+   }
+   
+   getTodayPoints() {
+       const todayProgress = this.getTodayProgress();
+       return Object.values(todayProgress).filter(Boolean).length;
+   }
+   
+   getCompletionPercentage() {
+       if (!this.app.activeChallenge) return 0;
+       const todayProgress = this.getTodayProgress();
+       const completed = Object.values(todayProgress).filter(Boolean).length;
+       return Math.round((completed / this.app.activeChallenge.goals.length) * 100);
+   }
+   
+   async toggleGoal(goalIndex) {
+       if (!this.app.currentUser || !this.app.activeChallenge) return;
+       
+       const today = this.getESTDate();
+       const todayProgress = this.getTodayProgress() || {};
+       const wasCompleted = todayProgress[goalIndex] || false;
+       const newCompleted = !wasCompleted;
+       
+       // Update locally first for smooth UI
+       if (!this.app.dailyProgress[today]) {
+           this.app.dailyProgress[today] = {};
+       }
+       
+       this.app.dailyProgress[today][goalIndex] = newCompleted;
+       
+       // Update UI immediately
+       this.app.renderer.updateGoalItem(goalIndex);
+       
+       // Save to database
+       await this.updateProgress(
+           this.app.currentUser.id,
+           this.app.activeChallenge.id,
+           today,
+           goalIndex,
+           newCompleted
+       );
+       
+       // Update user stats - but let the server handle the actual point calculation
+       if (newCompleted) {
+           this.app.currentUser.total_points++;
+       } else {
+           this.app.currentUser.total_points = Math.max(0, this.app.currentUser.total_points - 1);
+       }
+       
+       this.app.renderer.updateStats();
+   }
 }
