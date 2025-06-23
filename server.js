@@ -109,14 +109,6 @@ app.get('/api/users/:userId/challenges', async (req, res) => {
 app.post('/api/challenges', async (req, res) => {
   try {
     const { user_id, name, duration, goals } = req.body;
-    app.post('/api/progress', async (req, res) => {
-  try {
-    const { user_id, challenge_id, date, goal_index, completed } = req.body;
-    // ADD THESE 3 LINES HERE:
-    console.log('=== PROGRESS UPDATE DEBUG ===');
-    console.log('Received date from frontend:', date);
-    console.log('All parameters:', { user_id, challenge_id, date, goal_index, completed });
-    // Then the rest of your existing code continues...
     const result = await pool.query(
       'INSERT INTO challenges (user_id, name, duration, goals) VALUES ($1, $2, $3, $4) RETURNING *',
       [user_id, name, duration, goals]
@@ -154,6 +146,11 @@ app.post('/api/progress', async (req, res) => {
   try {
     const { user_id, challenge_id, date, goal_index, completed } = req.body;
     
+    // DEBUG LOGGING
+    console.log('=== PROGRESS UPDATE DEBUG ===');
+    console.log('Received date from frontend:', date);
+    console.log('All parameters:', { user_id, challenge_id, date, goal_index, completed });
+    
     // Check if this goal was already completed before updating
     const existingResult = await pool.query(
       'SELECT completed FROM daily_progress WHERE user_id = $1 AND challenge_id = $2 AND date = $3 AND goal_index = $4',
@@ -165,10 +162,10 @@ app.post('/api/progress', async (req, res) => {
     // Insert or update the progress
     await pool.query(
       `INSERT INTO daily_progress (user_id, challenge_id, date, goal_index, completed) 
-       VALUES ($1, $2, CURRENT_DATE, $3, $4) 
+       VALUES ($1, $2, $3, $4, $5) 
        ON CONFLICT (user_id, challenge_id, date, goal_index) 
-       DO UPDATE SET completed = $4`,
-      [user_id, challenge_id, goal_index, completed]
+       DO UPDATE SET completed = $5`,
+      [user_id, challenge_id, date, goal_index, completed]
     );
     
     // Only update total points if the completion status actually changed
@@ -186,6 +183,7 @@ app.post('/api/progress', async (req, res) => {
     res.status(500).json({ error: 'Failed to update progress' });
   }
 });
+
 // Get leaderboard
 app.get('/api/leaderboard', async (req, res) => {
   try {
@@ -204,7 +202,6 @@ app.get('/api/leaderboard', async (req, res) => {
       ORDER BY u.total_points DESC, u.name ASC
       LIMIT 10
     `);
-    
     res.json(result.rows);
   } catch (err) {
     console.error('Get leaderboard error:', err);
@@ -414,6 +411,7 @@ app.post('/api/challenges/create', async (req, res) => {
     res.status(500).json({ error: 'Failed to create challenge' });
   }
 });
+
 // Get user's current challenges
 app.get('/api/users/:userId/current-challenges', async (req, res) => {
   try {
