@@ -48,11 +48,11 @@ async function initDB() {
     `);
 
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS daily_progress (
+      CREATE TABLE IF NOT EXISTS daily_progress_v2_v2 (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id),
         challenge_id INTEGER REFERENCES challenges(id),
-        date DATE NOT NULL,
+        date VARCHAR(10) NOT NULL,
         goal_index INTEGER NOT NULL,
         completed BOOLEAN DEFAULT FALSE,
         UNIQUE(user_id, challenge_id, date, goal_index)
@@ -127,7 +127,7 @@ app.get('/api/progress/:userId/:challengeId/:date', async (req, res) => {
   try {
     const { userId, challengeId, date } = req.params;
     const result = await pool.query(
-      'SELECT goal_index, completed FROM daily_progress WHERE user_id = $1 AND challenge_id = $2 AND date = $3',
+      'SELECT goal_index, completed FROM daily_progress_v2 WHERE user_id = $1 AND challenge_id = $2 AND date = $3',
       [userId, challengeId, date]
     );
     
@@ -155,7 +155,7 @@ app.post('/api/progress', async (req, res) => {
     
     // Check if this goal was already completed before updating
     const existingResult = await pool.query(
-      'SELECT completed FROM daily_progress WHERE user_id = $1 AND challenge_id = $2 AND date = $3 AND goal_index = $4',
+      'SELECT completed FROM daily_progress_v2 WHERE user_id = $1 AND challenge_id = $2 AND date = $3 AND goal_index = $4',
       [user_id, challenge_id, date, goal_index]
     );
     
@@ -163,7 +163,7 @@ app.post('/api/progress', async (req, res) => {
     
     // Insert or update the progress
     await pool.query(
-      `INSERT INTO daily_progress (user_id, challenge_id, date, goal_index, completed) 
+      `INSERT INTO daily_progress_v2 (user_id, challenge_id, date, goal_index, completed) 
    VALUES ($1, $2, $3::date, $4, $5) 
    ON CONFLICT (user_id, challenge_id, date, goal_index) 
    DO UPDATE SET completed = $5`,
@@ -199,7 +199,7 @@ app.get('/api/leaderboard', async (req, res) => {
         MAX(c.created_at) as last_active
       FROM users u
       LEFT JOIN challenges c ON u.id = c.user_id
-      LEFT JOIN daily_progress dp ON u.id = dp.user_id
+      LEFT JOIN daily_progress_v2 dp ON u.id = dp.user_id
       GROUP BY u.id, u.name, u.total_points
       ORDER BY u.total_points DESC, u.name ASC
       LIMIT 10
@@ -234,7 +234,7 @@ app.get('/api/users/:userId/stats', async (req, res) => {
     
     // Get user's total completed goals
     const goalsResult = await pool.query(
-      'SELECT COUNT(*) as completed_goals FROM daily_progress WHERE user_id = $1 AND completed = true',
+      'SELECT COUNT(*) as completed_goals FROM daily_progress_v2 WHERE user_id = $1 AND completed = true',
       [userId]
     );
     
@@ -244,7 +244,7 @@ app.get('/api/users/:userId/stats', async (req, res) => {
         SELECT 
           date,
           CASE WHEN COUNT(CASE WHEN completed = true THEN 1 END) > 0 THEN 1 ELSE 0 END as has_activity
-        FROM daily_progress 
+        FROM daily_progress_v2 
         WHERE user_id = $1 
         GROUP BY date
         ORDER BY date DESC
@@ -289,7 +289,7 @@ app.get('/api/users/:userId/weekly-stats', async (req, res) => {
           COUNT(CASE WHEN dp.completed = true THEN 1 END) as goals_completed,
           COUNT(*) as total_goals,
           ROUND((COUNT(CASE WHEN dp.completed = true THEN 1 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 0) as completion_rate
-        FROM daily_progress dp
+        FROM daily_progress_v2 dp
         WHERE dp.user_id = $1
           AND dp.date >= CURRENT_DATE - INTERVAL '16 weeks'
         GROUP BY DATE_TRUNC('week', dp.date)
@@ -308,7 +308,7 @@ app.get('/api/users/:userId/weekly-stats', async (req, res) => {
           COUNT(CASE WHEN dp.completed = true THEN 1 END) as goals_completed,
           COUNT(*) as total_goals,
           ROUND((COUNT(CASE WHEN dp.completed = true THEN 1 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 0) as completion_rate
-        FROM daily_progress dp
+        FROM daily_progress_v2 dp
         WHERE dp.user_id = $1
         GROUP BY DATE_TRUNC('week', dp.date)
         ORDER BY week_start DESC
@@ -450,7 +450,7 @@ app.get('/api/challenges/:challengeId/leaderboard', async (req, res) => {
         COUNT(DISTINCT dp.date) as active_days
       FROM challenge_participants cp
       JOIN users u ON cp.user_id = u.id
-      LEFT JOIN daily_progress dp ON u.id = dp.user_id AND dp.challenge_id = $1
+      LEFT JOIN daily_progress_v2 dp ON u.id = dp.user_id AND dp.challenge_id = $1
       WHERE cp.challenge_id = $1
       GROUP BY u.id, u.name
       ORDER BY total_points DESC, active_days DESC, u.name ASC
@@ -502,7 +502,7 @@ app.delete('/api/users/:userId', async (req, res) => {
     const { userId } = req.params;
     
     // Delete user's progress
-    await pool.query('DELETE FROM daily_progress WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM daily_progress_v2 WHERE user_id = $1', [userId]);
     
     // Delete user's challenges (using user_id, not created_by)
     await pool.query('DELETE FROM challenges WHERE user_id = $1', [userId]);
