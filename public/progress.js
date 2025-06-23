@@ -5,6 +5,7 @@ class ProgressManager {
     }
     
    // Helper method to get EST/EDT date
+// Helper method to get EST/EDT date
 getESTDate() {
     // Get the current date in Eastern Time directly
     const formatter = new Intl.DateTimeFormat('en-US', {
@@ -19,7 +20,13 @@ getESTDate() {
     const month = parts.find(p => p.type === 'month').value;
     const day = parts.find(p => p.type === 'day').value;
     
-    return `${year}-${month}-${day}`;
+    const dateString = `${year}-${month}-${day}`;
+    
+    // Add debugging
+    console.log('Browser date:', new Date().toString());
+    console.log('Calculated Eastern date:', dateString);
+    
+    return dateString;
 }
     
     async loadDailyProgress(userId, challengeId, date) {
