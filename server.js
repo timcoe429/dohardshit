@@ -159,7 +159,7 @@ app.post('/api/progress', async (req, res) => {
       `INSERT INTO daily_progress (user_id, challenge_id, date, goal_index, completed) 
        VALUES ($1, $2, CURRENT_DATE, $3, $4) 
        ON CONFLICT (user_id, challenge_id, date, goal_index) 
-       DO UPDATE SET completed = $5`,
+       DO UPDATE SET completed = $4`,
       [user_id, challenge_id, goal_index, completed]
     );
     
