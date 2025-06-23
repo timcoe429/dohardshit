@@ -283,7 +283,7 @@ app.get('/api/users/:userId/weekly-stats', async (req, res) => {
     const weeklyResult = await pool.query(`
       WITH weekly_stats AS (
         SELECT 
-          DATE_TRUNC('week', dp.date) as week_start,
+          SUBSTRING(dp.date, 1, 8) || '01' as week_start, as week_start,
           COUNT(CASE WHEN dp.completed = true THEN 1 END) as points,
           COUNT(DISTINCT dp.date) as active_days,
           COUNT(CASE WHEN dp.completed = true THEN 1 END) as goals_completed,
@@ -292,7 +292,7 @@ app.get('/api/users/:userId/weekly-stats', async (req, res) => {
         FROM daily_progress_v2 dp
         WHERE dp.user_id = $1
           AND dp.date >= CURRENT_DATE - INTERVAL '16 weeks'
-        GROUP BY DATE_TRUNC('week', dp.date)
+        GROUP BY SUBSTRING(dp.date, 1, 8) || '01' as week_start,
         ORDER BY week_start DESC
       )
       SELECT * FROM weekly_stats
@@ -302,7 +302,7 @@ app.get('/api/users/:userId/weekly-stats', async (req, res) => {
     const allTimeResult = await pool.query(`
       WITH weekly_stats AS (
         SELECT 
-          DATE_TRUNC('week', dp.date) as week_start,
+          SUBSTRING(dp.date, 1, 8) || '01' as week_start, as week_start,
           COUNT(CASE WHEN dp.completed = true THEN 1 END) as points,
           COUNT(DISTINCT dp.date) as active_days,
           COUNT(CASE WHEN dp.completed = true THEN 1 END) as goals_completed,
@@ -310,7 +310,7 @@ app.get('/api/users/:userId/weekly-stats', async (req, res) => {
           ROUND((COUNT(CASE WHEN dp.completed = true THEN 1 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 0) as completion_rate
         FROM daily_progress_v2 dp
         WHERE dp.user_id = $1
-        GROUP BY DATE_TRUNC('week', dp.date)
+        GROUP BY SUBSTRING(dp.date, 1, 8) || '01' as week_start,
         ORDER BY week_start DESC
       )
       SELECT * FROM weekly_stats
