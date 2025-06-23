@@ -157,10 +157,10 @@ app.post('/api/progress', async (req, res) => {
     // Insert or update the progress
     await pool.query(
       `INSERT INTO daily_progress (user_id, challenge_id, date, goal_index, completed) 
-       VALUES ($1, $2, $3, $4, $5) 
+       VALUES ($1, $2, CURRENT_DATE, $3, $4) 
        ON CONFLICT (user_id, challenge_id, date, goal_index) 
        DO UPDATE SET completed = $5`,
-      [user_id, challenge_id, date, goal_index, completed]
+      [user_id, challenge_id, goal_index, completed]
     );
     
     // Only update total points if the completion status actually changed
