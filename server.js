@@ -291,7 +291,6 @@ app.get('/api/users/:userId/weekly-stats', async (req, res) => {
           ROUND((COUNT(CASE WHEN dp.completed = true THEN 1 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 0) as completion_rate
         FROM daily_progress_v2 dp
         WHERE dp.user_id = $1
-          AND dp.date >= CURRENT_DATE - INTERVAL '16 weeks'
         GROUP BY SUBSTRING(dp.date, 1, 8) || '01' as week_start,
         ORDER BY week_start DESC
       )
