@@ -281,21 +281,18 @@ app.get('/api/users/:userId/weekly-stats', async (req, res) => {
     
     // Get weekly aggregated data for last 16 weeks
     const weeklyResult = await pool.query(`
-      WITH weekly_stats AS (
-        SELECT 
-          SUBSTRING(dp.date, 1, 8) || '01' as week_start, as week_start,
-          COUNT(CASE WHEN dp.completed = true THEN 1 END) as points,
-          COUNT(DISTINCT dp.date) as active_days,
-          COUNT(CASE WHEN dp.completed = true THEN 1 END) as goals_completed,
-          COUNT(*) as total_goals,
-          ROUND((COUNT(CASE WHEN dp.completed = true THEN 1 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 0) as completion_rate
-        FROM daily_progress_v2 dp
-        WHERE dp.user_id = $1
-        GROUP BY SUBSTRING(dp.date, 1, 8) || '01' as week_start,
-        ORDER BY week_start DESC
-      )
-      SELECT * FROM weekly_stats
-    `, [userId]);
+  SELECT 
+    dp.date as week_start,
+    COUNT(CASE WHEN dp.completed = true THEN 1 END) as points,
+    COUNT(DISTINCT dp.date) as active_days,
+    COUNT(CASE WHEN dp.completed = true THEN 1 END) as goals_completed,
+    COUNT(*) as total_goals,
+    ROUND((COUNT(CASE WHEN dp.completed = true THEN 1 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 0) as completion_rate
+  FROM daily_progress_v2 dp
+  WHERE dp.user_id = $1
+  GROUP BY dp.date
+  ORDER BY dp.date DESC
+`, [userId]);
     
     // Get all-time weekly data
     const allTimeResult = await pool.query(`
