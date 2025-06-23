@@ -48,7 +48,7 @@ async function initDB() {
     `);
 
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS daily_progress_v2_v2 (
+      CREATE TABLE IF NOT EXISTS daily_progress_v2 (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id),
         challenge_id INTEGER REFERENCES challenges(id),
@@ -164,7 +164,7 @@ app.post('/api/progress', async (req, res) => {
     // Insert or update the progress
     await pool.query(
       `INSERT INTO daily_progress_v2 (user_id, challenge_id, date, goal_index, completed) 
-   VALUES ($1, $2, $3::date, $4, $5) 
+   VALUES ($1, $2, $3, $4, $5) 
    ON CONFLICT (user_id, challenge_id, date, goal_index) 
    DO UPDATE SET completed = $5`,
   [user_id, challenge_id, date, goal_index, completed]
