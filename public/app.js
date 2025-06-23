@@ -108,8 +108,11 @@ class ChallengeApp {
     
     // Stats methods
     showStatsModal() {
-        this.statsManager.showModal();
-    }
+    // Temporarily disable stats modal to fix other issues
+    alert('Stats feature temporarily disabled while we fix date issues');
+    return;
+    // this.statsManager.showModal();
+}
     
     hideStatsModal() {
         this.statsManager.hideModal();
