@@ -22,9 +22,7 @@ getESTDate() {
     
     const dateString = `${year}-${month}-${day}`;
     
-    // Add debugging
-    console.log('Browser date:', new Date().toString());
-    console.log('Calculated Eastern date:', dateString);
+
     
     return dateString;
 }
