@@ -147,12 +147,6 @@ app.get('/api/progress/:userId/:challengeId/:date', async (req, res) => {
 app.post('/api/progress', async (req, res) => {
   try {
     const { user_id, challenge_id, date, goal_index, completed } = req.body;
-    
-    // DEBUG LOGGING
-    console.log('=== PROGRESS UPDATE DEBUG ===');
-    console.log('Received date from frontend:', date);
-    console.log('All parameters:', { user_id, challenge_id, date, goal_index, completed });
-    
     // Check if this goal was already completed before updating
     const existingResult = await pool.query(
       'SELECT completed FROM daily_progress_v2 WHERE user_id = $1 AND challenge_id = $2 AND date = $3 AND goal_index = $4',
@@ -297,19 +291,19 @@ app.get('/api/users/:userId/weekly-stats', async (req, res) => {
     // Get all-time weekly data
     const allTimeResult = await pool.query(`
       WITH weekly_stats AS (
-        SELECT 
-          SUBSTRING(dp.date, 1, 8) || '01' as week_start, as week_start,
-          COUNT(CASE WHEN dp.completed = true THEN 1 END) as points,
-          COUNT(DISTINCT dp.date) as active_days,
-          COUNT(CASE WHEN dp.completed = true THEN 1 END) as goals_completed,
-          COUNT(*) as total_goals,
-          ROUND((COUNT(CASE WHEN dp.completed = true THEN 1 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 0) as completion_rate
+        SELECT
+          SUBSTRING(dp.date, 1, 8) || '01' AS week_start,
+          COUNT(CASE WHEN dp.completed = true THEN 1 END) AS points,
+          COUNT(DISTINCT dp.date) AS active_days,
+          COUNT(CASE WHEN dp.completed = true THEN 1 END) AS goals_completed,
+          COUNT(*) AS total_goals,
+          ROUND((COUNT(CASE WHEN dp.completed = true THEN 1 END)::numeric / NULLIF(COUNT(*), 0)) * 100, 0) AS completion_rate
         FROM daily_progress_v2 dp
         WHERE dp.user_id = $1
-        GROUP BY SUBSTRING(dp.date, 1, 8) || '01' as week_start,
-        ORDER BY week_start DESC
+        GROUP BY SUBSTRING(dp.date, 1, 8) || '01'
       )
       SELECT * FROM weekly_stats
+      ORDER BY week_start DESC
     `, [userId]);
     
     res.json({
