@@ -60,6 +60,8 @@ async function initDB() {
     `);
 
     console.log('Database tables initialized');
+        const tzResult = await pool.query('SHOW timezone');
+    console.log('Database timezone:', tzResult.rows[0].TimeZone);
   } catch (err) {
     console.error('Database initialization error:', err);
   }
@@ -162,10 +164,10 @@ app.post('/api/progress', async (req, res) => {
     // Insert or update the progress
     await pool.query(
       `INSERT INTO daily_progress (user_id, challenge_id, date, goal_index, completed) 
-       VALUES ($1, $2, $3, $4, $5) 
-       ON CONFLICT (user_id, challenge_id, date, goal_index) 
-       DO UPDATE SET completed = $5`,
-      [user_id, challenge_id, date, goal_index, completed]
+   VALUES ($1, $2, $3::date, $4, $5) 
+   ON CONFLICT (user_id, challenge_id, date, goal_index) 
+   DO UPDATE SET completed = $5`,
+  [user_id, challenge_id, date, goal_index, completed]
     );
     
     // Only update total points if the completion status actually changed
