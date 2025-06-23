@@ -1,3 +1,13 @@
+app.post('/api/progress', async (req, res) => {
+  try {
+    const { user_id, challenge_id, date, goal_index, completed } = req.body;
+    
+    // DEBUG LOGGING
+    console.log('=== PROGRESS UPDATE DEBUG ===');
+    console.log('Received date from frontend:', date);
+    console.log('All parameters:', { user_id, challenge_id, date, goal_index, completed });
+    
+    // Rest of your existing code...
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
