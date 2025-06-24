@@ -161,12 +161,6 @@ class ChallengeApp {
        }
    }
    
-   async toggleGoal(goalIndex) {
-       await this.progressManager.toggleGoal(goalIndex);
-       // Refresh user stats in background to get updated rank
-       this.loadUserStats().catch(err => console.error('Failed to refresh stats:', err));
-   }
-   
    renderUserManagementModal() {
        const existingModal = document.getElementById('userMgmtModal');
        if (existingModal) existingModal.remove();
