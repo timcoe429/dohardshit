@@ -101,7 +101,7 @@ class ChallengeApp {
    }
    
    // Leaderboard methods
-   async showLeaderboard() {
+   async showLeaderboardModal() {
        // Refresh leaderboard data before showing
        await this.loadLeaderboard();
        await this.loadUserStats();
@@ -113,7 +113,7 @@ class ChallengeApp {
    }
    
    // Stats methods
-   async showStats() {
+   async showStatsModal() {
        // Refresh user stats before showing
        await this.loadUserStats();
        this.statsManager.showModal();
