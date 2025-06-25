@@ -49,6 +49,9 @@ class AuthManager {
             if (!window.chatManager) {
                 window.chatManager = new ChatManager(this.app.currentUser.id, this.app.currentUser.name);
             }
+
+            // Check and apply theme
+            await this.app.updateTheme();
             
             this.app.render();
         }
