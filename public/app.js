@@ -122,7 +122,25 @@ class ChallengeApp {
    hideStatsModal() {
        this.statsManager.hideModal();
    }
-   
+   // Theme management
+    async updateTheme() {
+        if (!this.currentUser) return;
+        
+        try {
+            const response = await fetch(`/api/users/${this.currentUser.id}/current-theme`);
+            const badge = await response.json();
+            
+            // Remove all theme classes
+            document.body.classList.remove('theme-fire', 'theme-lightning', 'theme-diamond', 'theme-legendary');
+            
+            // Apply new theme if user has a badge
+            if (badge && badge.theme_class) {
+                document.body.classList.add(badge.theme_class);
+            }
+        } catch (err) {
+            console.error('Update theme error:', err);
+        }
+    }
    // User Management Methods
    async showUserManagement() {
        // Refresh leaderboard data before showing
