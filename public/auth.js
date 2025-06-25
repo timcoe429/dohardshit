@@ -54,6 +54,9 @@ class AuthManager {
             await this.app.updateTheme();
             
             this.app.render();
+            setTimeout(() => {
+                this.app.renderer.renderNextBadgeProgress();
+            }, 100);
         }
     }
     
