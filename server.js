@@ -27,6 +27,7 @@ app.use(express.static('public', {
 // === SIMPLIFIED CHALLENGE SCHEMA ===
 async function initDB() {
   try {
+    // Create users table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -36,34 +37,90 @@ async function initDB() {
       )
     `);
 
+    // Create challenges table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS challenges (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id),
         name VARCHAR(255) NOT NULL,
         duration INTEGER NOT NULL,
-        goals TEXT[] NOT NULL,
+        start_date DATE NOT NULL,
+        created_by INTEGER REFERENCES users(id),
+        invite_code VARCHAR(20) UNIQUE,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create challenge_participants table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS challenge_participants (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        challenge_id INTEGER REFERENCES challenges(id),
+        goals TEXT[],
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, challenge_id)
+      )
+    `);
+
+    // Create daily_progress table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS daily_progress (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        challenge_id INTEGER REFERENCES challenges(id),
+        date DATE NOT NULL,
+        goal_index INTEGER NOT NULL,
+        completed BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, challenge_id, date, goal_index)
+      )
+    `);
+
+    // Create daily_progress_summary table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS daily_progress_summary (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        challenge_id INTEGER REFERENCES challenges(id),
+        date DATE NOT NULL,
+        points INTEGER DEFAULT 0,
+        completion_percentage INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, challenge_id, date)
+      )
+    `);
+
+    // NEW: Create chat tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        message TEXT NOT NULL,
+        message_type VARCHAR(50) DEFAULT 'user',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS daily_progress_v2 (
+      CREATE TABLE IF NOT EXISTS message_reactions (
         id SERIAL PRIMARY KEY,
+        message_id INTEGER REFERENCES chat_messages(id),
         user_id INTEGER REFERENCES users(id),
-        challenge_id INTEGER REFERENCES challenges(id),
-        date VARCHAR(10) NOT NULL,
-        goal_index INTEGER NOT NULL,
-        completed BOOLEAN DEFAULT FALSE,
-        UNIQUE(user_id, challenge_id, date, goal_index)
+        reaction VARCHAR(10),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(message_id, user_id)
       )
     `);
 
-    console.log('Database tables initialized');
-        const tzResult = await pool.query('SHOW timezone');
-    console.log('Database timezone:', tzResult.rows[0].TimeZone);
+    // Create indices for performance
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_reactions_message ON message_reactions(message_id)');
+
+    console.log('Database initialized successfully');
   } catch (err) {
     console.error('Database initialization error:', err);
+    throw err;
   }
 }
 // API Routes
