@@ -374,7 +374,7 @@ class Renderer {
             container.innerHTML = '';
             return;
         }
-        
+    }      
         container.innerHTML = `
             <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 mb-6 shadow-sm border border-purple-200">
                 <div class="flex items-center justify-between mb-4">
