@@ -25,7 +25,11 @@ class StatsManager {
             for (let i = 6; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
-                const dateStr = date.toISOString().split('T')[0];
+                // Format date in Eastern time (same as progress.js)
+const year = date.getFullYear();
+const month = String(date.getMonth() + 1).padStart(2, '0');
+const day = String(date.getDate()).padStart(2, '0');
+const dateStr = `${year}-${month}-${day}`;
                 
                 const response = await fetch(`/api/progress/${this.app.currentUser.id}/${this.app.activeChallenge.id}/${dateStr}`);
                 const progress = await response.json();
