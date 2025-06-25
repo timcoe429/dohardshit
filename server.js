@@ -112,6 +112,46 @@ async function initDB() {
         UNIQUE(message_id, user_id)
       )
     `);
+    // Create badges table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS badges (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        icon VARCHAR(10),
+        category VARCHAR(50),
+        requirement_type VARCHAR(50),
+        requirement_value INTEGER,
+        theme_class VARCHAR(50),
+        points_reward INTEGER DEFAULT 0,
+        rarity VARCHAR(20) DEFAULT 'common',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create user_badges table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_badges (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        badge_id INTEGER REFERENCES badges(id),
+        earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        challenge_id INTEGER REFERENCES challenges(id),
+        UNIQUE(user_id, badge_id)
+      )
+    `);
+
+    // Check if badges exist
+    const badgeCheck = await pool.query('SELECT COUNT(*) FROM badges');
+    if (badgeCheck.rows[0].count == 0) {
+      await pool.query(`
+        INSERT INTO badges (name, description, icon, category, requirement_type, requirement_value, theme_class, rarity) VALUES
+        ('On Fire', '3 day streak', '🔥', 'streak', 'streak_days', 3, 'theme-fire', 'common'),
+        ('Lightning', '7 day streak', '⚡', 'streak', 'streak_days', 7, 'theme-lightning', 'uncommon'),
+        ('Diamond Hands', '30 day streak', '💎', 'streak', 'streak_days', 30, 'theme-diamond', 'rare'),
+        ('Legendary', '100 day streak', '👑', 'streak', 'streak_days', 100, 'theme-legendary', 'legendary')
+      `);
+    }
 
     // Create indices for performance
     await pool.query('CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at DESC)');
@@ -259,6 +299,101 @@ app.get('/api/leaderboard', async (req, res) => {
   } catch (err) {
     console.error('Get leaderboard error:', err);
     res.status(500).json({ error: 'Failed to get leaderboard' });
+  }
+});
+
+// === BADGE ENDPOINTS ===
+
+// Get user's current badge/theme
+app.get('/api/users/:userId/current-theme', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Get user's highest streak badge
+    const result = await pool.query(`
+      SELECT b.* 
+      FROM user_badges ub
+      JOIN badges b ON b.id = ub.badge_id
+      WHERE ub.user_id = $1 AND b.category = 'streak'
+      ORDER BY b.requirement_value DESC
+      LIMIT 1
+    `, [userId]);
+    
+    res.json(result.rows[0] || null);
+  } catch (err) {
+    console.error('Get theme error:', err);
+    res.status(500).json({ error: 'Failed to get theme' });
+  }
+});
+
+// Check and award badges after progress update
+app.post('/api/users/:userId/check-badges', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const newBadges = [];
+    
+    // Calculate current streak
+    const streakResult = await pool.query(`
+      WITH RECURSIVE date_series AS (
+        SELECT CURRENT_DATE AS date
+        UNION ALL
+        SELECT date - INTERVAL '1 day'
+        FROM date_series
+        WHERE date > CURRENT_DATE - INTERVAL '365 days'
+      ),
+      user_progress AS (
+        SELECT DISTINCT date::date as completed_date
+        FROM daily_progress
+        WHERE user_id = $1 
+          AND completed = true
+          AND date >= CURRENT_DATE - INTERVAL '365 days'
+      )
+      SELECT COUNT(*) as streak
+      FROM (
+        SELECT date
+        FROM date_series
+        WHERE date <= CURRENT_DATE
+        ORDER BY date DESC
+      ) d
+      WHERE EXISTS (
+        SELECT 1 FROM user_progress up WHERE up.completed_date = d.date
+      )
+      AND NOT EXISTS (
+        SELECT 1 
+        FROM date_series d2 
+        WHERE d2.date < d.date 
+          AND d2.date >= CURRENT_DATE - INTERVAL '365 days'
+          AND NOT EXISTS (
+            SELECT 1 FROM user_progress up WHERE up.completed_date = d2.date
+          )
+      )
+    `, [userId]);
+    
+    const currentStreak = parseInt(streakResult.rows[0]?.streak || 0);
+    
+    // Check which badges user should have
+    const streakBadges = await pool.query(`
+      SELECT * FROM badges 
+      WHERE requirement_type = 'streak_days' 
+        AND requirement_value <= $1
+        AND id NOT IN (
+          SELECT badge_id FROM user_badges WHERE user_id = $2
+        )
+    `, [currentStreak, userId]);
+    
+    // Award new badges
+    for (const badge of streakBadges.rows) {
+      await pool.query(
+        'INSERT INTO user_badges (user_id, badge_id) VALUES ($1, $2)',
+        [userId, badge.id]
+      );
+      newBadges.push(badge);
+    }
+    
+    res.json({ newBadges, currentStreak });
+  } catch (err) {
+    console.error('Check badges error:', err);
+    res.status(500).json({ error: 'Failed to check badges' });
   }
 });
 
