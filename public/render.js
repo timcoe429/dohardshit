@@ -367,6 +367,37 @@ class Renderer {
         if (completionElement) completionElement.textContent = `${completion}%`;
     }
     
+    async renderNextBadgeProgress() {
+    async renderNextBadgeProgress() {
+        const container = document.getElementById('next-badge-progress');
+        if (!container) return;
+        
+        const nextBadge = await this.app.getNextBadge();
+        if (!nextBadge) {
+            container.innerHTML = '';
+            return;
+        }
+        
+        container.innerHTML = `
+            <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 mb-6 shadow-sm border border-purple-200">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">Next Badge: ${nextBadge.icon} ${nextBadge.name}</h3>
+                        <p class="text-sm text-gray-600">${nextBadge.daysRemaining} more days needed!</p>
+                    </div>
+                    <div class="text-3xl">${nextBadge.icon}</div>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500" 
+                         style="width: ${nextBadge.progress}%">
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Current streak: ${nextBadge.currentStreak} days</p>
+            </div>
+        `;
+    }
+    }
+    
     updateModalGoals() {
         const goalsList = document.getElementById('goalsList');
         if (goalsList) {
