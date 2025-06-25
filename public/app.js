@@ -141,6 +141,42 @@ class ChallengeApp {
             console.error('Update theme error:', err);
         }
     }
+   async getNextBadge() {
+        if (!this.currentUser) return null;
+        
+        try {
+            // Get current streak from the server
+            const response = await fetch(`/api/users/${this.currentUser.id}/check-badges`, {
+                method: 'POST'
+            });
+            const { currentStreak } = await response.json();
+            
+            // Define badge milestones
+            const milestones = [
+                { days: 3, name: 'On Fire', icon: '🔥' },
+                { days: 7, name: 'Lightning', icon: '⚡' },
+                { days: 30, name: 'Diamond Hands', icon: '💎' },
+                { days: 100, name: 'Legendary', icon: '👑' }
+            ];
+            
+            // Find next badge
+            for (const milestone of milestones) {
+                if (currentStreak < milestone.days) {
+                    return {
+                        ...milestone,
+                        currentStreak,
+                        daysRemaining: milestone.days - currentStreak,
+                        progress: Math.round((currentStreak / milestone.days) * 100)
+                    };
+                }
+            }
+            
+            return null; // Has all badges
+        } catch (err) {
+            console.error('Get next badge error:', err);
+            return null;
+        }
+    }
    // User Management Methods
    async showUserManagement() {
        // Refresh leaderboard data before showing
