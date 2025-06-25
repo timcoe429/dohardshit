@@ -262,6 +262,137 @@ app.get('/api/leaderboard', async (req, res) => {
   }
 });
 
+// === CHAT ENDPOINTS ===
+
+// Get chat messages
+app.get('/api/chat/messages', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        cm.id,
+        cm.message,
+        cm.message_type,
+        cm.created_at,
+        u.name as user_name,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'reaction', mr.reaction,
+              'user_name', ru.name
+            ) ORDER BY mr.created_at
+          ) FILTER (WHERE mr.reaction IS NOT NULL), 
+          '[]'
+        ) as reactions
+      FROM chat_messages cm
+      JOIN users u ON cm.user_id = u.id
+      LEFT JOIN message_reactions mr ON cm.id = mr.message_id
+      LEFT JOIN users ru ON mr.user_id = ru.id
+      GROUP BY cm.id, cm.message, cm.message_type, cm.created_at, u.name
+      ORDER BY cm.created_at DESC
+      LIMIT 50
+    `);
+    
+    res.json(result.rows.reverse());
+  } catch (err) {
+    console.error('Get messages error:', err);
+    res.status(500).json({ error: 'Failed to get messages' });
+  }
+});
+
+// Send chat message
+app.post('/api/chat/messages', async (req, res) => {
+  try {
+    const { user_id, message } = req.body;
+    
+    const result = await pool.query(
+      'INSERT INTO chat_messages (user_id, message) VALUES ($1, $2) RETURNING *',
+      [user_id, message]
+    );
+    
+    // Check for slash commands
+    if (message.startsWith('/')) {
+      await handleSlashCommand(message, user_id);
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Send message error:', err);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// Add reaction
+app.post('/api/chat/reactions', async (req, res) => {
+  try {
+    const { message_id, user_id, reaction } = req.body;
+    
+    await pool.query(
+      `INSERT INTO message_reactions (message_id, user_id, reaction) 
+       VALUES ($1, $2, $3) 
+       ON CONFLICT (message_id, user_id) 
+       DO UPDATE SET reaction = $3`,
+      [message_id, user_id, reaction]
+    );
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Add reaction error:', err);
+    res.status(500).json({ error: 'Failed to add reaction' });
+  }
+});
+
+// Helper function for slash commands
+async function handleSlashCommand(message, userId) {
+  const command = message.split(' ')[0].toLowerCase();
+  const target = message.split(' ')[1];
+  
+  let botMessage = '';
+  
+  switch(command) {
+    case '/excuse':
+      const excuses = [
+        "My protein powder exploded",
+        "I'm allergic to exercise today",
+        "My gym clothes are in the wash... all of them",
+        "I pulled a muscle reaching for the remote",
+        "My dog ate my running shoes",
+        "I'm saving my energy for tomorrow",
+        "The gym was too crowded (I checked from my couch)"
+      ];
+      botMessage = `🤖 ${excuses[Math.floor(Math.random() * excuses.length)]}`;
+      break;
+      
+    case '/roast':
+      if (target) {
+        const roasts = [
+          `${target} works out so rarely, their gym membership card has cobwebs`,
+          `${target}'s idea of cardio is walking to the fridge`,
+          `${target} has a six-pack... in the fridge`,
+          `I've seen ${target} break a sweat opening a bag of chips`
+        ];
+        botMessage = `🔥 ${roasts[Math.floor(Math.random() * roasts.length)]}`;
+      }
+      break;
+      
+    case '/motivate':
+      const quotes = [
+        "💪 GET UP YOU MAGNIFICENT BASTARD!",
+        "🦁 Lions don't lose sleep over the opinions of sheep. GET MOVING!",
+        "⚡ Your future self is watching you right now. Don't disappoint them!",
+        "🔥 Comfort is the enemy of progress. EMBRACE THE SUCK!"
+      ];
+      botMessage = quotes[Math.floor(Math.random() * quotes.length)];
+      break;
+  }
+  
+  if (botMessage) {
+    await pool.query(
+      'INSERT INTO chat_messages (user_id, message, message_type) VALUES ($1, $2, $3)',
+      [userId, botMessage, 'bot']
+    );
+  }
+}
+
 // Get user stats for profile
 app.get('/api/users/:userId/stats', async (req, res) => {
   try {
