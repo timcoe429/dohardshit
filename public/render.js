@@ -183,6 +183,8 @@ class Renderer {
                                 </div>
                             </div>
                         </div>
+                        <!-- Next Badge Progress -->
+                        <div id="next-badge-progress"></div>
 
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                             <div class="p-6 border-b border-gray-200">
