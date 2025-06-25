@@ -45,6 +45,10 @@ class AuthManager {
                 console.error('Error loading user data:', err);
                 this.app.challenges = [];
             }
+            // Initialize chat
+            if (!window.chatManager) {
+                window.chatManager = new ChatManager(this.app.currentUser.id, this.app.currentUser.name);
+            }
             
             this.app.render();
         }
