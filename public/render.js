@@ -44,7 +44,7 @@ class Renderer {
                         
                         <button 
                             id="loginBtn"
-                            class="w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
+                            class="w-full py-3 px-4 rounded-lg font-semibold bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl transition-all duration-200"
                         >
                             Start Challenge
                         </button>
@@ -56,12 +56,12 @@ class Renderer {
     
     renderEmptyState() {
         return `
-            <div class="text-center py-12">
-                <div class="w-24 h-24 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <span class="text-white text-3xl">🎯</span>
+            <div class="p-12 text-center">
+                <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-3xl">🎯</span>
                 </div>
-                <h2 class="text-2xl font-bold text-gray-800 mb-3">Ready to Start Your First Challenge?</h2>
-                <p class="text-gray-600 mb-6 max-w-md mx-auto">Create a custom challenge with your own goals and start building better habits today!</p>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">No Active Challenge</h3>
+                <p class="text-gray-600 mb-6">Create a custom challenge with your own goals and start building better habits today!</p>
                 <button id="newChallengeBtn" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl transition-all duration-200">
                     🚀 Create Your First Challenge
                 </button>
@@ -90,6 +90,9 @@ class Renderer {
                                     <p class="text-sm font-semibold text-blue-600">${this.app.currentUser.total_points} points</p>
                                     <p class="text-xs text-gray-500">Rank #${this.app.userStats.rank || '?'}</p>
                                 </div>
+                                <button id="statsBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="My Stats">
+                                    <span>📊</span>
+                                </button>
                                 <button id="userMgmtBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Manage Users">
                                     <span>👥</span>
                                 </button>
@@ -176,13 +179,14 @@ class Renderer {
                             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-2xl font-bold text-purple-600">${this.app.activeChallenge.duration}</p>
+                                        <p class="text-2xl font-bold text-purple-600">${this.app.challengeManager.getCurrentChallengeDay()}</p>
                                         <p class="text-sm text-gray-600">Challenge Days</p>
                                     </div>
                                     <span class="text-2xl">🎯</span>
                                 </div>
                             </div>
                         </div>
+
                         <!-- Next Badge Progress -->
                         <div id="next-badge-progress"></div>
 
@@ -196,34 +200,30 @@ class Renderer {
                                                 Day ${this.app.challengeManager.getCurrentChallengeDay()} of ${this.app.activeChallenge.duration}
                                             </span>
                                         </div>
-                                        <p class="text-sm text-gray-600 mb-3">Complete your daily goals to earn points</p>
-                                        
-                                        <!-- Progress Bar -->
-                                        <div class="progress-bar-container bg-gray-200 rounded-full h-2 mb-1" style="width: 90%; max-width: 400px;">
-                                            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-300" 
-                                                 style="width: ${this.app.challengeManager.getChallengeProgress()}%"></div>
+                                        <p class="text-gray-600">Complete your daily goals to earn points</p>
+                                        <div class="mt-4 bg-gray-200 rounded-full h-2" style="width: 90%; max-width: 400px;">
+                                            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500 ease-out" 
+                                                 style="width: ${(this.app.challengeManager.getCurrentChallengeDay() / this.app.activeChallenge.duration) * 100}%">
+                                            </div>
                                         </div>
-                                        <p class="text-xs text-gray-500">${this.app.challengeManager.getChallengeProgress()}% complete</p>
+                                        <p class="text-xs text-gray-500 mt-1">${Math.round((this.app.challengeManager.getCurrentChallengeDay() / this.app.activeChallenge.duration) * 100)}% complete</p>
                                     </div>
-                                    <button id="newChallengeBtn" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg transition-all duration-200">
-                                        🚀 New Challenge
+                                    <button id="newChallengeBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="New Challenge">
+                                        <span class="text-2xl">➕</span>
                                     </button>
                                 </div>
                             </div>
-
+                            
                             <div class="p-6">
                                 <div class="space-y-3">
                                     ${this.app.activeChallenge.goals.map((goal, index) => {
                                         const isCompleted = this.app.progressManager.getTodayProgress()[index] || false;
                                         return `
-                                            <div 
-                                                class="flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 goal-item ${
-                                                    isCompleted 
-                                                        ? 'bg-green-50 border-green-500' 
-                                                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                                                }"
-                                                data-goal-index="${index}"
-                                            >
+                                            <div class="flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 goal-item ${
+                                                isCompleted 
+                                                    ? 'bg-green-50 border-green-500' 
+                                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                            }" data-goal-index="${index}">
                                                 <div class="w-6 h-6 rounded border-2 flex items-center justify-center transition-all duration-200 ${
                                                     isCompleted 
                                                         ? 'bg-green-500 border-green-500' 
@@ -248,13 +248,10 @@ class Renderer {
     }
     
     renderModal() {
-        const existingModal = document.getElementById('challengeModal');
-        if (existingModal) existingModal.remove();
-        
         const modalHTML = `
-            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-in" id="challengeModal">
-                <div class="bg-white rounded-xl p-6 w-full max-w-md slide-in-from-bottom-4" style="animation: slideInFromBottom 0.3s ease-out;">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">Create New Challenge</h3>
+            <div id="challengeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md animate-in slide-in-from-bottom-4">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Create New Challenge</h2>
                     
                     <div class="space-y-4">
                         <div>
@@ -264,7 +261,7 @@ class Renderer {
                                 id="challengeName"
                                 value="${this.app.newChallenge.name}"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Enter challenge name"
+                                placeholder="e.g., 30-Day Fitness Challenge"
                             />
                         </div>
                         
@@ -274,14 +271,15 @@ class Renderer {
                                 type="number" 
                                 id="challengeDuration"
                                 value="${this.app.newChallenge.duration}"
-                                min="1"
+                                min="1" 
+                                max="365"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Daily Goals</label>
-                            <div class="space-y-2" id="goalsList">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Daily Goals</label>
+                            <div id="goalsList" class="space-y-2">
                                 ${this.app.newChallenge.goals.map((goal, index) => `
                                     <div class="flex items-center space-x-2">
                                         <input 
@@ -368,7 +366,6 @@ class Renderer {
     }
     
     async renderNextBadgeProgress() {
-    async renderNextBadgeProgress() {
         const container = document.getElementById('next-badge-progress');
         if (!container) return;
         
@@ -395,7 +392,6 @@ class Renderer {
                 <p class="text-xs text-gray-500 mt-2">Current streak: ${nextBadge.currentStreak} days</p>
             </div>
         `;
-    }
     }
     
     updateModalGoals() {
@@ -425,5 +421,39 @@ class Renderer {
             `;
             this.app.eventHandler.attachModalGoalEvents();
         }
+    }
+    
+    renderUserManagementModal() {
+        const modalHTML = `
+            <div id="userMgmtModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md animate-in slide-in-from-bottom-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">Manage Users</h2>
+                        <button onclick="window.app.hideUserManagement()" class="text-gray-400 hover:text-gray-600 text-2xl">✕</button>
+                    </div>
+                    
+                    <div class="space-y-3 max-h-96 overflow-y-auto">
+                        ${this.app.leaderboard.map(user => `
+                            <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50">
+                                <div>
+                                    <p class="font-semibold text-gray-800">${user.name}</p>
+                                    <p class="text-sm text-gray-500">${user.total_points} points</p>
+                                </div>
+                                ${user.id !== this.app.currentUser.id ? `
+                                    <button 
+                                        onclick="window.app.deleteUser(${user.id})"
+                                        class="px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                        Delete
+                                    </button>
+                                ` : '<span class="text-xs text-gray-400">You</span>'}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
     }
 }
