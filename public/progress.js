@@ -9,11 +9,16 @@ class ProgressManager {
            const response = await fetch(`/api/progress/${userId}/${challengeId}/${date}`);
            const data = await response.json();
            
-           // Convert array to object keyed by goal index
-           const progress = {};
-           data.forEach(item => {
-               progress[item.goal_index] = item.completed;
-           });
+ // Convert array to object keyed by goal index
+const progress = {};
+if (Array.isArray(data)) {
+    data.forEach(item => {
+        progress[item.goal_index] = item.completed;
+    });
+} else {
+    // If data is already an object, use it directly
+    Object.assign(progress, data);
+}
            
            return progress;
        } catch (err) {
