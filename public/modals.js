@@ -123,7 +123,7 @@ class ModalManager {
                     this.app.challenges.push(challenge);
                     this.app.activeChallenge = challenge;
                     this.hideCreateChallengeModal();
-                    await this.app.initTodayProgress();
+                    await this.app.progressManager.initTodayProgress();
                     this.app.render();
                 }
             } catch (err) {
