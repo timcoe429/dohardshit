@@ -15,12 +15,17 @@ class EventHandler {
             }
         };
         
-        loginBtn.addEventListener('click', handleLogin);
-        nameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleLogin();
-            }
-        });
+        if (loginBtn) {
+            loginBtn.addEventListener('click', handleLogin);
+        }
+        
+        if (nameInput) {
+            nameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            });
+        }
     }
     
     attachDashboardEvents() {
@@ -31,13 +36,18 @@ class EventHandler {
         const userMgmtBtn = document.getElementById('userMgmtBtn');
         const statsBtn = document.getElementById('statsBtn');
         
-        logoutBtn.addEventListener('click', () => {
-            this.app.authManager.handleLogout();
-        });
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                this.app.authManager.handleLogout();
+            });
+        }
         
+        // Fix: Make sure each goal item has its click handler
         goalItems.forEach(item => {
+            const goalIndex = parseInt(item.getAttribute('data-goal-index'));
+            
             item.addEventListener('click', () => {
-                const goalIndex = parseInt(item.getAttribute('data-goal-index'));
+                console.log(`Goal ${goalIndex} clicked`);
                 this.app.progressManager.toggleGoal(goalIndex);
             });
         });
