@@ -130,8 +130,18 @@
                 display: none !important;
             }
             
-            /* Hide ALL stat cards */
-            main .grid.grid-cols-3 {
+            /* Hide ALL stat cards - target the actual rendered HTML */
+            main > .grid {
+                display: none !important;
+            }
+            
+            /* Also hide by targeting the stat cards directly */
+            main .bg-white.rounded-xl.p-6:has(.text-2xl) {
+                display: none !important;
+            }
+            
+            /* Hide the entire stats section */
+            main > div:first-child {
                 display: none !important;
             }
             
