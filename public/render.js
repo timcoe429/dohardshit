@@ -70,30 +70,30 @@ class Renderer {
                                 <p class="text-xs text-gray-500">Total earned</p>
                             </div>
                             <div class="flex space-x-2">
-                                <button 
+                                <button
+                                    id="statsBtn"
                                     class="p-2 hover:bg-gray-100 rounded-lg transition-colors stats-btn"
-                                    onclick="window.app.showStatsModal()"
                                     title="View Stats"
                                 >
                                     📊
                                 </button>
-                                <button 
+                                <button
+                                    id="leaderboardBtn"
                                     class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    onclick="window.app.showLeaderboardModal()"
                                     title="View Leaderboard"
                                 >
                                     🏆
                                 </button>
-                                <button 
+                                <button
+                                    id="userMgmtBtn"
                                     class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    onclick="window.app.showUserManagement()"
                                     title="Manage Users"
                                 >
                                     👥
                                 </button>
-                                <button 
+                                <button
+                                    id="logoutBtn"
                                     class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    onclick="window.app.authManager.handleLogout()"
                                     title="Logout"
                                 >
                                     🚪
@@ -175,9 +175,9 @@ class Renderer {
                         </div>
                     `}
                     
-                    <button 
+                    <button
+                        id="newChallengeBtn"
                         class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                        onclick="window.app.showCreateChallengeModal()"
                     >
                         ${this.app.activeChallenge ? 'Create New Challenge' : 'Create Your First Challenge'}
                     </button>
