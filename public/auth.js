@@ -4,6 +4,55 @@ class AuthManager {
         this.app = app;
     }
     
+    // Save login data to localStorage
+    saveLoginData(user) {
+        try {
+            localStorage.setItem('challengeApp_user', JSON.stringify({
+                id: user.id,
+                name: user.name,
+                total_points: user.total_points,
+                savedAt: new Date().toISOString()
+            }));
+        } catch (err) {
+            console.error('Failed to save login data:', err);
+        }
+    }
+    
+    // Check for saved login on app start
+    async checkSavedLogin() {
+        try {
+            const savedData = localStorage.getItem('challengeApp_user');
+            if (!savedData) return false;
+            
+            const userData = JSON.parse(savedData);
+            
+            // Optional: Check if login is too old (30 days)
+            const savedDate = new Date(userData.savedAt);
+            const daysSinceSave = (new Date() - savedDate) / (1000 * 60 * 60 * 24);
+            if (daysSinceSave > 30) {
+                this.clearLoginData();
+                return false;
+            }
+            
+            // Auto-login with saved data
+            await this.handleLogin(userData.name, true);
+            return true;
+        } catch (err) {
+            console.error('Failed to restore login:', err);
+            this.clearLoginData();
+            return false;
+        }
+    }
+    
+    // Clear saved login data
+    clearLoginData() {
+        try {
+            localStorage.removeItem('challengeApp_user');
+        } catch (err) {
+            console.error('Failed to clear login data:', err);
+        }
+    }
+    
     async createUser(name) {
         try {
             const response = await fetch('/api/users', {
@@ -18,12 +67,17 @@ class AuthManager {
         }
     }
     
-    async handleLogin(name) {
+    async handleLogin(name, isAutoLogin = false) {
         const user = await this.createUser(name);
         if (user) {
             this.app.currentUser = user;
             this.app.userStats.totalPoints = user.total_points;
             this.app.currentScreen = 'dashboard';
+            
+            // Save login data for persistence (only if not auto-login)
+            if (!isAutoLogin) {
+                this.saveLoginData(user);
+            }
             
             // Load user's data
             try {
@@ -106,6 +160,9 @@ class AuthManager {
     }
     
     handleLogout() {
+        // Clear saved login data when logging out
+        this.clearLoginData();
+        
         this.app.currentUser = null;
         this.app.challenges = [];
         this.app.activeChallenge = null;
