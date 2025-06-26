@@ -30,15 +30,21 @@ class ChallengeApp {
        this.leaderboardManager = new LeaderboardManager(this);
        this.statsManager = new StatsManager(this);
 
-      this.init();
+      this.init().catch(console.error);
        
        // Make app globally accessible
        window.app = this;
    }
-   
-   init() {
-       this.render();
-   }
+
+async init() {
+    // Check for saved login first
+    const hasAutoLoggedIn = await this.authManager.checkSavedLogin();
+    
+    // Only render login screen if no saved login
+    if (!hasAutoLoggedIn) {
+        this.render();
+    }
+}
    
    render() {
        this.renderer.render();
