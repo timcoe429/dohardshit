@@ -214,7 +214,31 @@ class ChallengeApp {
            alert('Failed to delete user');
        }
    }
-   
+   // Add this method to app.js after the deleteUser method (around line 200)
+// This will let you manually check badges from the console
+
+checkBadgesManually() {
+    if (!this.currentUser) {
+        console.log('No user logged in');
+        return;
+    }
+    
+    fetch(`/api/users/${this.currentUser.id}/check-badges`, {
+        method: 'POST'
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log('Manual badge check:', data);
+        if (data.newBadges && data.newBadges.length > 0) {
+            data.newBadges.forEach(badge => {
+                this.progressManager.showBadgeNotification(badge);
+            });
+            this.updateTheme();
+            this.renderer.renderNextBadgeProgress();
+        }
+    })
+    .catch(err => console.error('Manual badge check error:', err));
+}
    renderUserManagementModal() {
        const existingModal = document.getElementById('userMgmtModal');
        if (existingModal) existingModal.remove();
