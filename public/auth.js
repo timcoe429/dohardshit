@@ -17,7 +17,7 @@ class AuthManager {
             return null;
         }
     }
-
+    
     async handleLogin(name) {
         const user = await this.createUser(name);
         if (user) {
@@ -52,6 +52,51 @@ class AuthManager {
 
             // Check and apply theme
             await this.app.updateTheme();
+            
+            // Debug badge system
+            console.log('Checking badges for user:', user.id);
+            
+            // Add a small delay to ensure everything is loaded
+            setTimeout(async () => {
+                try {
+                    // First, check the debug endpoint
+                    const debugResponse = await fetch(`/api/users/${user.id}/streak-debug`);
+                    if (debugResponse.ok) {
+                        const debugData = await debugResponse.json();
+                        console.log('Streak Debug Info:', debugData);
+                    }
+                    
+                    // Then check badges
+                    const badgeResponse = await fetch(`/api/users/${user.id}/check-badges`, {
+                        method: 'POST'
+                    });
+                    
+                    if (badgeResponse.ok) {
+                        const badgeData = await badgeResponse.json();
+                        console.log('Badge Check Result:', badgeData);
+                        
+                        if (badgeData.newBadges && badgeData.newBadges.length > 0) {
+                            console.log('New badges awarded!', badgeData.newBadges);
+                            // Show notification for each new badge
+                            badgeData.newBadges.forEach(badge => {
+                                this.app.progressManager.showBadgeNotification(badge);
+                            });
+                        }
+                        
+                        // Update theme based on badges
+                        await this.app.updateTheme();
+                        
+                        // Force render the badge progress tracker
+                        setTimeout(() => {
+                            this.app.renderer.renderNextBadgeProgress();
+                        }, 500);
+                    } else {
+                        console.error('Badge check failed:', badgeResponse.status);
+                    }
+                } catch (err) {
+                    console.error('Badge system error:', err);
+                }
+            }, 1000);
             
             this.app.render();
             setTimeout(() => {
