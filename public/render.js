@@ -3,184 +3,136 @@ class Renderer {
     constructor(app) {
         this.app = app;
     }
-    
+
     render() {
         const app = document.getElementById('app');
-        
         if (this.app.currentScreen === 'login') {
             app.innerHTML = this.renderLogin();
             this.app.eventHandler.attachLoginEvents();
-        } else {
+        } else if (this.app.currentScreen === 'dashboard') {
             app.innerHTML = this.renderDashboard();
-            this.app.eventHandler.attachDashboardEvents();
+            this.app.eventHandler.attachGoalEvents();
         }
     }
-    
+
     renderLogin() {
         return `
-            <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-                <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md animate-in slide-in-from-bottom-4">
-                    <div class="text-center mb-8">
-                        <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <span class="text-white text-2xl">🏆</span>
-                        </div>
-                        <h1 class="text-2xl font-bold text-gray-800 mb-2">Daily Challenge</h1>
-                        <p class="text-gray-600">Start your journey to better habits</p>
-                        <p class="text-sm text-green-600 mt-2">💾 Now with persistent storage!</p>
-                    </div>
+            <div class="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
+                <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md transform transition-all hover:scale-105">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Daily Challenge</h1>
+                    <p class="text-gray-600 mb-6">Track your goals, build habits</p>
                     
-                    <div class="space-y-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Enter your name to get started
-                            </label>
-                            <input 
-                                type="text" 
-                                id="nameInput"
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                placeholder="Your name"
-                            />
-                        </div>
-                        
-                        <button 
-                            id="loginBtn"
-                            class="w-full py-3 px-4 rounded-lg font-semibold bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl transition-all duration-200"
-                        >
-                            Start Challenge
-                        </button>
-                    </div>
+                    <input 
+                        type="text" 
+                        id="nameInput" 
+                        placeholder="Enter your name"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+                    />
+                    
+                    <button 
+                        id="loginBtn"
+                        class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                    >
+                        Start Challenge
+                    </button>
                 </div>
             </div>
         `;
     }
-    
-    renderEmptyState() {
-        return `
-            <div class="p-12 text-center">
-                <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-3xl">🎯</span>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-800 mb-2">No Active Challenge</h3>
-                <p class="text-gray-600 mb-6">Create a custom challenge with your own goals and start building better habits today!</p>
-                <button id="newChallengeBtn" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-indigo-700 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl transition-all duration-200">
-                    🚀 Create Your First Challenge
-                </button>
-            </div>
-        `;
-    }
-    
-    renderDashboard() {
-        if (!this.app.activeChallenge) {
-            return `
-                <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-                    <header class="bg-white shadow-sm border-b border-gray-200">
-                        <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                                    <span class="text-white">🏆</span>
-                                </div>
-                                <div>
-                                    <h1 class="text-lg font-bold text-gray-800">Daily Challenge</h1>
-                                    <p class="text-sm text-gray-600">Welcome, ${this.app.currentUser.name}!</p>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-center space-x-4">
-                                <div class="text-right">
-                                    <p class="text-sm font-semibold text-blue-600">${this.app.currentUser.total_points} points</p>
-                                    <p class="text-xs text-gray-500">Rank #${this.app.userStats.rank || '?'}</p>
-                                </div>
-                                <button id="statsBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="My Stats">
-                                    <span>📊</span>
-                                </button>
-                                <button id="userMgmtBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Manage Users">
-                                    <span>👥</span>
-                                </button>
-                                <button id="leaderboardBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Leaderboard">
-                                    <span>🏅</span>
-                                </button>
-                                <button id="logoutBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Logout">
-                                    <span>🚪</span>
-                                </button>
-                            </div>
-                        </div>
-                    </header>
 
-                    <main class="max-w-4xl mx-auto p-4">
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 animate-in slide-in-from-right-4">
-                            ${this.renderEmptyState()}
-                        </div>
-                    </main>
-                </div>
-            `;
-        }
-        
+    renderDashboard() {
         const todayPoints = this.app.progressManager.getTodayPoints();
         const completion = this.app.progressManager.getCompletionPercentage();
+        const challengeDay = this.app.progressManager.getCurrentChallengeDay();
+        const challengeProgress = this.app.progressManager.getChallengeProgress();
+        
+        const challengeDaysText = challengeDay > 0 ? 
+            `${challengeDay}` : 
+            (this.app.activeChallenge ? 'Starting today' : 'No active challenge');
         
         return `
-            <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+            <div class="min-h-screen bg-gray-50">
+                <!-- Header -->
                 <header class="bg-white shadow-sm border-b border-gray-200">
                     <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                                <span class="text-white">🏆</span>
+                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                                ${this.app.currentUser.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                                <h1 class="text-lg font-bold text-gray-800">Daily Challenge</h1>
+                                <h1 class="text-xl font-bold text-gray-800">Daily Challenge</h1>
                                 <p class="text-sm text-gray-600">Welcome back, ${this.app.currentUser.name}!</p>
                             </div>
                         </div>
-                        
                         <div class="flex items-center space-x-4">
                             <div class="text-right">
-                                <p class="text-sm font-semibold text-blue-600">${this.app.currentUser.total_points} points</p>
+                                <p class="text-2xl font-bold text-blue-600">${this.app.currentUser.total_points} points</p>
                                 <p class="text-xs text-gray-500">Total earned</p>
                             </div>
-                            <button id="statsBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="My Stats">
-                                <span>📊</span>
-                            </button>
-                            <button id="userMgmtBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Manage Users">
-                                <span>👥</span>
-                            </button>
-                            <button id="leaderboardBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Leaderboard">
-                                <span>🏅</span>
-                            </button>
-                            <button id="logoutBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="Logout">
-                                <span>🚪</span>
-                            </button>
+                            <div class="flex space-x-2">
+                                <button 
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors stats-btn"
+                                    onclick="window.app.showStatsModal()"
+                                    title="View Stats"
+                                >
+                                    📊
+                                </button>
+                                <button 
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                    onclick="window.app.showLeaderboardModal()"
+                                    title="View Leaderboard"
+                                >
+                                    🏆
+                                </button>
+                                <button 
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                    onclick="window.app.showUserManagement()"
+                                    title="Manage Users"
+                                >
+                                    👥
+                                </button>
+                                <button 
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                    onclick="window.app.authManager.handleLogout()"
+                                    title="Logout"
+                                >
+                                    🚪
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </header>
 
-                <main class="max-w-4xl mx-auto p-4 pt-8">
-                    <div class="animate-in slide-in-from-right-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <!-- Main Content -->
+                <main class="max-w-4xl mx-auto px-4 py-8">
+                    ${this.app.activeChallenge ? `
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-3 gap-4 mb-6">
                             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div>
+                                        <p class="text-sm text-gray-600 mb-1">Today's Points</p>
                                         <p class="text-2xl font-bold text-blue-600">${todayPoints}</p>
-                                        <p class="text-sm text-gray-600">Today's Points</p>
                                     </div>
-                                    <span class="text-2xl">🏆</span>
+                                    <span class="text-2xl">🏅</span>
                                 </div>
                             </div>
                             
                             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div>
+                                        <p class="text-sm text-gray-600 mb-1">Completed Today</p>
                                         <p class="text-2xl font-bold text-green-600">${completion}%</p>
-                                        <p class="text-sm text-gray-600">Completed Today</p>
                                     </div>
-                                    <span class="text-2xl">📅</span>
+                                    <span class="text-2xl">📊</span>
                                 </div>
                             </div>
                             
                             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="text-2xl font-bold text-purple-600">${this.app.challengeManager.getCurrentChallengeDay()}</p>
-                                        <p class="text-sm text-gray-600">Challenge Days</p>
+                                        <p class="text-sm text-gray-600 mb-1">Challenge Days</p>
+                                        <p class="text-2xl font-bold text-purple-600">${challengeDaysText}</p>
                                     </div>
                                     <span class="text-2xl">🎯</span>
                                 </div>
@@ -193,65 +145,95 @@ class Renderer {
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                             <div class="p-6 border-b border-gray-200">
                                 <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="flex items-center space-x-3 mb-2">
-                                            <h2 class="text-xl font-bold text-gray-800">${this.app.activeChallenge.name}</h2>
-                                            <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
-                                                Day ${this.app.challengeManager.getCurrentChallengeDay()} of ${this.app.activeChallenge.duration}
-                                            </span>
-                                        </div>
-                                        <p class="text-gray-600">Complete your daily goals to earn points</p>
-                                        <div class="mt-4 bg-gray-200 rounded-full h-2" style="width: 90%; max-width: 400px;">
-                                            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full transition-all duration-500 ease-out" 
-                                                 style="width: ${(this.app.challengeManager.getCurrentChallengeDay() / this.app.activeChallenge.duration) * 100}%">
-                                            </div>
-                                        </div>
-                                        <p class="text-xs text-gray-500 mt-1">${Math.round((this.app.challengeManager.getCurrentChallengeDay() / this.app.activeChallenge.duration) * 100)}% complete</p>
+                                    <div>
+                                        <h2 class="text-xl font-bold text-gray-800">${this.app.activeChallenge.name}</h2>
+                                        <p class="text-sm text-gray-600 mt-1">Day ${challengeDay} of ${this.app.activeChallenge.duration} • ${challengeProgress}% complete</p>
                                     </div>
-                                    <button id="newChallengeBtn" class="p-2 text-gray-600 hover:text-gray-800 transition-colors" title="New Challenge">
-                                        <span class="text-2xl">➕</span>
-                                    </button>
+                                    <div class="text-sm text-gray-500">
+                                        Complete your daily goals to earn points
+                                    </div>
+                                </div>
+                                
+                                <!-- Progress Bar -->
+                                <div class="mt-4 w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300" 
+                                         style="width: ${challengeProgress}%">
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="p-6">
-                                <div class="space-y-3">
-                                    ${this.app.activeChallenge.goals.map((goal, index) => {
-                                        const isCompleted = this.app.progressManager.getTodayProgress()[index] || false;
-                                        return `
-                                            <div class="flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 goal-item ${
-                                                isCompleted 
-                                                    ? 'bg-green-50 border-green-500' 
-                                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                                            }" data-goal-index="${index}">
-                                                <div class="w-6 h-6 rounded border-2 flex items-center justify-center transition-all duration-200 ${
-                                                    isCompleted 
-                                                        ? 'bg-green-500 border-green-500' 
-                                                        : 'border-gray-300 bg-white'
-                                                }">
-                                                    ${isCompleted ? '<span class="text-white text-sm font-bold">✓</span>' : ''}
-                                                </div>
-                                                <div class="ml-4 flex-1">
-                                                    <p class="font-medium ${isCompleted ? 'text-green-800' : 'text-gray-800'}">${goal}</p>
-                                                </div>
-                                                ${isCompleted ? '<div class="text-green-600 font-semibold text-sm">+1 point</div>' : ''}
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                </div>
+                            <div class="p-6 space-y-3" id="goalsList">
+                                ${this.app.activeChallenge.goals.map((goal, index) => 
+                                    this.renderGoalItem(goal, index)
+                                ).join('')}
                             </div>
                         </div>
-                    </div>
+                    ` : `
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-4">No Active Challenge</h2>
+                            <p class="text-gray-600 mb-6">Create a new challenge to start tracking your goals!</p>
+                        </div>
+                    `}
+                    
+                    <button 
+                        class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                        onclick="window.app.showCreateChallengeModal()"
+                    >
+                        ${this.app.activeChallenge ? 'Create New Challenge' : 'Create Your First Challenge'}
+                    </button>
                 </main>
             </div>
         `;
     }
+
+    renderGoalItem(goal, index) {
+        const isCompleted = this.app.progressManager.getTodayProgress()[index] || false;
+        
+        return `
+            <div 
+                class="flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 goal-item ${
+                    isCompleted 
+                        ? 'bg-green-50 border-green-500 hover:bg-green-100' 
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                }"
+                data-goal-index="${index}"
+            >
+                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center mr-4 ${
+                    isCompleted 
+                        ? 'bg-green-500 border-green-500' 
+                        : 'border-gray-300 bg-white'
+                }">
+                    ${isCompleted ? '<span class="text-white text-sm font-bold">✓</span>' : ''}
+                </div>
+                <div class="ml-4 flex-1">
+                    <p class="font-medium ${isCompleted ? 'text-green-800' : 'text-gray-800'}">${goal}</p>
+                </div>
+                ${isCompleted ? '<div class="text-green-600 font-semibold text-sm">+1 point</div>' : ''}
+            </div>
+        `;
+    }
     
-    renderModal() {
+    updateGoalItem(goalIndex) {
+        const goalElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
+        const goal = this.app.activeChallenge.goals[goalIndex];
+        goalElement.outerHTML = this.renderGoalItem(goal, goalIndex);
+        
+        // Reattach event listener for the new element
+        const newElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
+        newElement.addEventListener('click', () => this.app.toggleGoal(goalIndex));
+        
+        // Add click animation
+        setTimeout(() => {
+            newElement.classList.add('scale-95');
+            setTimeout(() => newElement.classList.remove('scale-95'), 100);
+        }, 10);
+    }
+    
+    renderCreateChallengeModal() {
         const modalHTML = `
-            <div id="challengeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div id="createChallengeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                 <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md animate-in slide-in-from-bottom-4">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4">Create New Challenge</h2>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Create New Challenge</h2>
                     
                     <div class="space-y-4">
                         <div>
@@ -260,8 +242,8 @@ class Renderer {
                                 type="text" 
                                 id="challengeName"
                                 value="${this.app.newChallenge.name}"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="e.g., 30-Day Fitness Challenge"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
                         
@@ -280,36 +262,23 @@ class Renderer {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Daily Goals</label>
                             <div id="goalsList" class="space-y-2">
-                                ${this.app.newChallenge.goals.map((goal, index) => `
-                                    <div class="flex items-center space-x-2">
-                                        <input 
-                                            type="text" 
-                                            value="${goal}"
-                                            data-goal-index="${index}"
-                                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 goal-input"
-                                            placeholder="Goal ${index + 1}"
-                                        />
-                                        ${this.app.newChallenge.goals.length > 1 ? `
-                                            <button class="p-2 text-red-500 hover:text-red-700 remove-goal" data-goal-index="${index}">
-                                                <span>🗑️</span>
-                                            </button>
-                                        ` : ''}
-                                    </div>
-                                `).join('')}
-                                <button id="addGoalBtn" class="flex items-center space-x-2 text-blue-500 hover:text-blue-700 text-sm">
-                                    <span>➕</span>
-                                    <span>Add Goal</span>
-                                </button>
+                                <!-- Goals will be rendered here -->
                             </div>
                         </div>
                     </div>
                     
                     <div class="flex space-x-3 mt-6">
-                        <button id="cancelChallengeBtn" class="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                            Cancel
-                        </button>
-                        <button id="createChallengeBtn" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        <button 
+                            onclick="window.app.challengeManager.createChallenge()"
+                            class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                        >
                             Create Challenge
+                        </button>
+                        <button 
+                            onclick="window.app.hideCreateChallengeModal()"
+                            class="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+                        >
+                            Cancel
                         </button>
                     </div>
                 </div>
@@ -317,35 +286,18 @@ class Renderer {
         `;
         
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        this.app.eventHandler.attachModalEvents();
-    }
-    
-    updateGoalItem(goalIndex) {
-        const goalElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
-        if (!goalElement) return;
         
-        const isCompleted = this.app.progressManager.getTodayProgress()[goalIndex] || false;
-        const goal = this.app.activeChallenge.goals[goalIndex];
+        // Render goals after modal is in DOM
+        this.updateModalGoals();
         
-        goalElement.className = `flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 goal-item ${
-            isCompleted 
-                ? 'bg-green-50 border-green-500' 
-                : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-        }`;
+        // Attach event listeners
+        document.getElementById('challengeName').addEventListener('input', (e) => {
+            this.app.newChallenge.name = e.target.value;
+        });
         
-        goalElement.innerHTML = `
-            <div class="w-6 h-6 rounded border-2 flex items-center justify-center transition-all duration-200 ${
-                isCompleted 
-                    ? 'bg-green-500 border-green-500' 
-                    : 'border-gray-300 bg-white'
-            }">
-                ${isCompleted ? '<span class="text-white text-sm font-bold">✓</span>' : ''}
-            </div>
-            <div class="ml-4 flex-1">
-                <p class="font-medium ${isCompleted ? 'text-green-800' : 'text-gray-800'}">${goal}</p>
-            </div>
-            ${isCompleted ? '<div class="text-green-600 font-semibold text-sm">+1 point</div>' : ''}
-        `;
+        document.getElementById('challengeDuration').addEventListener('input', (e) => {
+            this.app.newChallenge.duration = parseInt(e.target.value) || 7;
+        });
     }
     
     updateStats() {
@@ -368,12 +320,14 @@ class Renderer {
     async renderNextBadgeProgress() {
         const container = document.getElementById('next-badge-progress');
         if (!container) return;
-    }
-        const nextBadge = await this.app.getNextBadge();
-        if (!nextBadge) {
-            container.innerHTML = '';
-            return;
-        }    
+        
+        try {
+            const nextBadge = await this.app.getNextBadge();
+            if (!nextBadge) {
+                container.innerHTML = '';
+                return;
+            }
+        
         container.innerHTML = `
             <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 mb-6 shadow-sm border border-purple-200">
                 <div class="flex items-center justify-between mb-4">
