@@ -11,7 +11,7 @@ class Renderer {
             this.app.eventHandler.attachLoginEvents();
         } else if (this.app.currentScreen === 'dashboard') {
             app.innerHTML = this.renderDashboard();
-            this.app.eventHandler.attachGoalEvents();
+            this.app.eventHandler.attachDashboardEvents();
         }
     }
 
