@@ -43,8 +43,8 @@ class Renderer {
     renderDashboard() {
         const todayPoints = this.app.progressManager.getTodayPoints();
         const completion = this.app.progressManager.getCompletionPercentage();
-        const challengeDay = this.app.progressManager.getCurrentChallengeDay();
-        const challengeProgress = this.app.progressManager.getChallengeProgress();
+        const challengeDay = this.app.challengeManager.getCurrentChallengeDay();
+        const challengeProgress = this.app.challengeManager.getChallengeProgress();
         
         const challengeDaysText = challengeDay > 0 ? 
             `${challengeDay}` : 
