@@ -29,6 +29,14 @@ class ChallengeApp {
        this.eventHandler = new EventHandler(this);
        this.leaderboardManager = new LeaderboardManager(this);
        this.statsManager = new StatsManager(this);
+
+      // Managers
+this.authManager = new AuthManager(this);
+this.challengeManager = new ChallengeManager(this);
+this.progressManager = new ProgressManager(this);
+this.eventHandler = new EventHandler(this);
+this.statsManager = new StatsManager(this);
+this.renderer = new Renderer(this);  // ADD THIS LINE
        
        this.init();
        
