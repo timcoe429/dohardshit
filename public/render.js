@@ -368,7 +368,7 @@ class Renderer {
     async renderNextBadgeProgress() {
         const container = document.getElementById('next-badge-progress');
         if (!container) return;
-        
+    }
         const nextBadge = await this.app.getNextBadge();
         if (!nextBadge) {
             container.innerHTML = '';
