@@ -326,74 +326,201 @@ app.get('/api/users/:userId/current-theme', async (req, res) => {
   }
 });
 
-// Check and award badges after progress update
+// COMPLETE BADGE FIX FOR SERVER.JS
+// Replace the badge-related endpoints in your server.js with these fixed versions:
+
+// 1. Fix the check badges endpoint (around line 463)
+// This was checking 'daily_progress' but should check 'daily_progress_v2'
 app.post('/api/users/:userId/check-badges', async (req, res) => {
   try {
     const { userId } = req.params;
     const newBadges = [];
     
-    // Calculate current streak
+    // First, let's check if user has any progress at all
+    const progressCheck = await pool.query(
+      'SELECT COUNT(*) as count FROM daily_progress_v2 WHERE user_id = $1 AND completed = true',
+      [userId]
+    );
+    
+    console.log(`User ${userId} has ${progressCheck.rows[0].count} completed goals`);
+    
+    // Calculate current streak with a simpler, more reliable query
     const streakResult = await pool.query(`
-      WITH RECURSIVE date_series AS (
-        SELECT CURRENT_DATE AS date
-        UNION ALL
-        SELECT date - INTERVAL '1 day'
-        FROM date_series
-        WHERE date > CURRENT_DATE - INTERVAL '365 days'
+      WITH dates AS (
+        SELECT generate_series(
+          CURRENT_DATE - INTERVAL '30 days',
+          CURRENT_DATE,
+          '1 day'::interval
+        )::date as date
       ),
-      user_progress AS (
-        SELECT DISTINCT date::date as completed_date
-        FROM daily_progress
+      daily_activity AS (
+        SELECT DISTINCT date::date as activity_date
+        FROM daily_progress_v2
         WHERE user_id = $1 
           AND completed = true
-          AND date >= CURRENT_DATE - INTERVAL '365 days'
+          AND date >= CURRENT_DATE - INTERVAL '30 days'
+      ),
+      streak_data AS (
+        SELECT 
+          d.date,
+          CASE WHEN da.activity_date IS NOT NULL THEN 1 ELSE 0 END as has_activity
+        FROM dates d
+        LEFT JOIN daily_activity da ON d.date = da.activity_date
+        ORDER BY d.date DESC
       )
-      SELECT COUNT(*) as streak
-      FROM (
-        SELECT date
-        FROM date_series
-        WHERE date <= CURRENT_DATE
-        ORDER BY date DESC
-      ) d
-      WHERE EXISTS (
-        SELECT 1 FROM user_progress up WHERE up.completed_date = d.date
-      )
-      AND NOT EXISTS (
-        SELECT 1 
-        FROM date_series d2 
-        WHERE d2.date < d.date 
-          AND d2.date >= CURRENT_DATE - INTERVAL '365 days'
-          AND NOT EXISTS (
-            SELECT 1 FROM user_progress up WHERE up.completed_date = d2.date
-          )
-      )
+      SELECT COUNT(*) as current_streak
+      FROM streak_data
+      WHERE has_activity = 1
+        AND date >= (
+          SELECT COALESCE(MAX(date), CURRENT_DATE - INTERVAL '30 days')
+          FROM streak_data
+          WHERE has_activity = 0 AND date < CURRENT_DATE
+        )
     `, [userId]);
     
-    const currentStreak = parseInt(streakResult.rows[0]?.streak || 0);
+    const currentStreak = parseInt(streakResult.rows[0]?.current_streak || 0);
+    console.log(`User ${userId} current streak: ${currentStreak}`);
     
-    // Check which badges user should have
-    const streakBadges = await pool.query(`
+    // Check which badges user already has
+    const existingBadges = await pool.query(
+      'SELECT badge_id FROM user_badges WHERE user_id = $1',
+      [userId]
+    );
+    const existingBadgeIds = existingBadges.rows.map(row => row.badge_id);
+    
+    // Check which badges user should have based on streak
+    const eligibleBadges = await pool.query(`
       SELECT * FROM badges 
       WHERE requirement_type = 'streak_days' 
         AND requirement_value <= $1
-        AND id NOT IN (
-          SELECT badge_id FROM user_badges WHERE user_id = $2
-        )
-    `, [currentStreak, userId]);
+        AND id NOT IN (${existingBadgeIds.length > 0 ? existingBadgeIds.join(',') : '0'})
+      ORDER BY requirement_value ASC
+    `, [currentStreak]);
     
     // Award new badges
-    for (const badge of streakBadges.rows) {
+    for (const badge of eligibleBadges.rows) {
       await pool.query(
-        'INSERT INTO user_badges (user_id, badge_id) VALUES ($1, $2)',
+        'INSERT INTO user_badges (user_id, badge_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
         [userId, badge.id]
       );
       newBadges.push(badge);
+      console.log(`Awarded badge ${badge.name} to user ${userId}`);
     }
     
     res.json({ newBadges, currentStreak });
   } catch (err) {
     console.error('Check badges error:', err);
     res.status(500).json({ error: 'Failed to check badges' });
+  }
+});
+
+// 2. Add a debug endpoint to check your streak calculation
+app.get('/api/users/:userId/streak-debug', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Get all progress for the last 30 days
+    const progressData = await pool.query(`
+      SELECT date, COUNT(*) as goals_completed
+      FROM daily_progress_v2
+      WHERE user_id = $1 
+        AND completed = true
+        AND date >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY date
+      ORDER BY date DESC
+    `, [userId]);
+    
+    // Get current badges
+    const badges = await pool.query(`
+      SELECT b.name, b.icon, b.requirement_value
+      FROM user_badges ub
+      JOIN badges b ON ub.badge_id = b.id
+      WHERE ub.user_id = $1
+    `, [userId]);
+    
+    // Calculate simple streak
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toISOString().split('T')[0];
+      
+      const hasProgress = progressData.rows.some(row => 
+        row.date.toISOString().split('T')[0] === dateStr
+      );
+      
+      if (hasProgress) {
+        streak++;
+      } else if (i > 0) { // Don't break on today if no progress yet
+        break;
+      }
+    }
+    
+    res.json({
+      currentStreak: streak,
+      progressDays: progressData.rows,
+      currentBadges: badges.rows,
+      debug: {
+        totalProgressDays: progressData.rows.length,
+        userId: userId
+      }
+    });
+  } catch (err) {
+    console.error('Streak debug error:', err);
+    res.status(500).json({ error: 'Failed to get streak debug info' });
+  }
+});
+
+// 3. Make sure the update progress endpoint triggers badge check
+app.post('/api/progress', async (req, res) => {
+  try {
+    const { user_id, challenge_id, date, goal_index, completed } = req.body;
+    
+    // Check if this goal was already completed before updating
+    const existingResult = await pool.query(
+      'SELECT completed FROM daily_progress_v2 WHERE user_id = $1 AND challenge_id = $2 AND date = $3 AND goal_index = $4',
+      [user_id, challenge_id, date, goal_index]
+    );
+    
+    const wasAlreadyCompleted = existingResult.rows.length > 0 ? existingResult.rows[0].completed : false;
+    
+    // Insert or update the progress
+    await pool.query(
+      `INSERT INTO daily_progress_v2 (user_id, challenge_id, date, goal_index, completed) 
+       VALUES ($1, $2, $3, $4, $5) 
+       ON CONFLICT (user_id, challenge_id, date, goal_index) 
+       DO UPDATE SET completed = $5`,
+      [user_id, challenge_id, date, goal_index, completed]
+    );
+    
+    // Only update total points if the completion status actually changed
+    if (completed !== wasAlreadyCompleted) {
+      const pointChange = completed ? 1 : -1;
+      await pool.query(
+        'UPDATE users SET total_points = GREATEST(0, total_points + $1) WHERE id = $2',
+        [pointChange, user_id]
+      );
+    }
+    
+    // Check for badges if a goal was completed
+    if (completed && !wasAlreadyCompleted) {
+      try {
+        const badgeCheck = await fetch(`http://localhost:${PORT}/api/users/${user_id}/check-badges`, {
+          method: 'POST'
+        });
+        console.log('Badge check triggered for user', user_id);
+      } catch (err) {
+        console.error('Failed to trigger badge check:', err);
+      }
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Update progress error:', err);
+    res.status(500).json({ error: 'Failed to update progress' });
   }
 });
 
