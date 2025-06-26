@@ -216,22 +216,29 @@ class Renderer {
             </div>
         `;
     }
+
+updateGoalItem(goalIndex) {
+    const goalElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
+    if (!goalElement) return;
     
-    updateGoalItem(goalIndex) {
-        const goalElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
-        const goal = this.app.activeChallenge.goals[goalIndex];
-        goalElement.outerHTML = this.renderGoalItem(goal, goalIndex);
-        
-        // Reattach event listener for the new element
-        const newElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
-        newElement.addEventListener('click', () => this.app.toggleGoal(goalIndex));
-        
-        // Add click animation
-        setTimeout(() => {
-            newElement.classList.add('scale-95');
-            setTimeout(() => newElement.classList.remove('scale-95'), 100);
-        }, 10);
-    }
+    const goal = this.app.activeChallenge.goals[goalIndex];
+    goalElement.outerHTML = this.renderGoalItem(goal, goalIndex);
+    
+    // Get the new element after replacing HTML
+    const newElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
+    
+    // Reattach event listener for the new element
+    newElement.addEventListener('click', () => {
+        console.log(`Reattaching click handler for goal ${goalIndex}`);
+        this.app.progressManager.toggleGoal(goalIndex);
+    });
+    
+    // Add click animation
+    setTimeout(() => {
+        newElement.classList.add('scale-95');
+        setTimeout(() => newElement.classList.remove('scale-95'), 100);
+    }, 10);
+}
     
     renderCreateChallengeModal() {
         const modalHTML = `
