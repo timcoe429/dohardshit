@@ -327,12 +327,8 @@ class Renderer {
                 container.innerHTML = '';
                 return;
             }
-        }
-        } catch (err) {
-    console.error('Error getting next badge:', err);
-    container.innerHTML = '';
-}
-        container.innerHTML = `
+
+            container.innerHTML = `
             <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 mb-6 shadow-sm border border-purple-200">
                 <div class="flex items-center justify-between mb-4">
                     <div>
@@ -349,6 +345,10 @@ class Renderer {
                 <p class="text-xs text-gray-500 mt-2">Current streak: ${nextBadge.currentStreak} days</p>
             </div>
         `;
+        } catch (err) {
+            console.error('Error getting next badge:', err);
+            container.innerHTML = '';
+        }
     }
     
     updateModalGoals() {
