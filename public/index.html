@@ -112,6 +112,291 @@
         .badge-progress-bar-fill {
             background: linear-gradient(135deg, #8b5cf6, #ec4899) !important;
         }
+        <!-- Add this CSS to your index.html within the <style> tags -->
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    /* Header adjustments */
+    header .max-w-4xl {
+        padding: 0.75rem 1rem;
+    }
+    
+    header .flex {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    
+    /* User avatar and title */
+    header .w-10.h-10 {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+    
+    header h1 {
+        font-size: 1.125rem;
+    }
+    
+    header .text-sm {
+        font-size: 0.75rem;
+    }
+    
+    /* Points display */
+    header .text-2xl {
+        font-size: 1.25rem;
+    }
+    
+    /* Header buttons */
+    header .flex.space-x-2 {
+        gap: 0.25rem;
+    }
+    
+    header button {
+        padding: 0.5rem;
+        font-size: 1.25rem;
+    }
+    
+    /* Main content padding */
+    main {
+        padding: 1rem !important;
+    }
+    
+    /* Stats cards - Stack on mobile */
+    main .grid.grid-cols-3 {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    /* Stat card adjustments */
+    main .bg-white.rounded-xl.p-6 {
+        padding: 1rem;
+    }
+    
+    main .text-2xl {
+        font-size: 1.5rem;
+    }
+    
+    /* Badge progress card */
+    #next-badge-progress .bg-gradient-to-r {
+        padding: 1rem;
+    }
+    
+    #next-badge-progress h3 {
+        font-size: 1rem;
+    }
+    
+    #next-badge-progress .text-3xl {
+        font-size: 2rem;
+    }
+    
+    /* Challenge card */
+    main .bg-white.rounded-xl.shadow-sm {
+        margin-bottom: 1rem;
+    }
+    
+    main .p-6 {
+        padding: 1rem;
+    }
+    
+    /* Challenge title and info */
+    main h2 {
+        font-size: 1.125rem;
+    }
+    
+    main .text-sm {
+        font-size: 0.875rem;
+    }
+    
+    /* Progress bar */
+    main .h-2 {
+        height: 0.5rem;
+    }
+    
+    /* Goal items */
+    .goal-item {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .goal-item .w-6.h-6 {
+        width: 1.5rem;
+        height: 1.5rem;
+        margin-right: 0.75rem;
+    }
+    
+    .goal-item p {
+        font-size: 0.875rem;
+    }
+    
+    /* New challenge button */
+    #newChallengeBtn {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    /* Chat button */
+    .fixed.bottom-6.right-6 {
+        bottom: 1rem;
+        right: 1rem;
+        padding: 0.75rem;
+    }
+    
+    .fixed.bottom-6.right-6 svg {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+    
+    /* Chat window on mobile */
+    .fixed.bottom-24.right-6.w-96 {
+        bottom: 5rem;
+        right: 1rem;
+        left: 1rem;
+        width: auto;
+        height: 70vh;
+        max-height: 500px;
+    }
+    
+    /* Modal adjustments */
+    .fixed.inset-0 .max-w-md,
+    .fixed.inset-0 .max-w-2xl {
+        margin: 1rem;
+        max-width: calc(100vw - 2rem);
+    }
+    
+    /* Leaderboard modal */
+    #leaderboardModal .space-y-3 {
+        max-height: 60vh;
+    }
+    
+    #leaderboardModal .flex.items-center.justify-between {
+        flex-wrap: nowrap;
+        gap: 0.5rem;
+    }
+    
+    #leaderboardModal .text-xs {
+        font-size: 0.75rem;
+    }
+    
+    /* Stats modal */
+    #statsModal .grid-cols-3 {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    #statsModal .text-3xl {
+        font-size: 1.875rem;
+    }
+    
+    /* Daily progress chart */
+    #statsModal .h-48 {
+        height: 10rem;
+    }
+    
+    /* Fix text truncation */
+    .truncate {
+        white-space: normal;
+        word-wrap: break-word;
+    }
+    
+    /* Ensure proper spacing */
+    .space-y-3 > * + * {
+        margin-top: 0.75rem;
+    }
+    
+    /* Fix button text */
+    button {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Responsive font sizes */
+    .text-lg {
+        font-size: 1.125rem;
+    }
+    
+    .text-xl {
+        font-size: 1.25rem;
+    }
+    
+    /* Fix stat card layout */
+    .bg-white.rounded-xl.shadow-sm .flex.items-center.justify-between {
+        gap: 0.5rem;
+    }
+    
+    /* Current badge display */
+    main .grid.grid-cols-3 + div {
+        margin-top: 0.75rem;
+    }
+    
+    /* Add padding to body to prevent content cutoff */
+    body {
+        padding-bottom: 5rem;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 400px) {
+    /* Even smaller font sizes */
+    header h1 {
+        font-size: 1rem;
+    }
+    
+    header .text-2xl {
+        font-size: 1.125rem;
+    }
+    
+    /* Stack header elements */
+    header > .max-w-4xl > .flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    header .flex.items-center.space-x-4 {
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+    }
+}
+
+/* Landscape mode adjustments */
+@media (max-height: 600px) and (orientation: landscape) {
+    /* Reduce vertical spacing */
+    .p-6 {
+        padding: 0.75rem;
+    }
+    
+    .mb-6 {
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Smaller modals in landscape */
+    .fixed.inset-0 .bg-white {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+}
+
+/* Fix iOS Safari issues */
+@supports (-webkit-touch-callout: none) {
+    /* iOS specific fixes */
+    .fixed {
+        position: fixed;
+        -webkit-transform: translateZ(0);
+    }
+    
+    /* Prevent iOS bounce */
+    body {
+        position: fixed;
+        width: 100%;
+        overflow: hidden;
+    }
+    
+    #app {
+        height: 100vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
     </style>
 </head>
 <body>
