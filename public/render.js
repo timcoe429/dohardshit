@@ -106,8 +106,8 @@ class Renderer {
                 <!-- Main Content -->
                 <main class="max-w-4xl mx-auto px-4 py-8">
                     ${this.app.activeChallenge ? `
-                        <!-- Stats Cards -->
-                        <div class="grid grid-cols-3 gap-4 mb-6">
+                        <!-- Stats Cards with Current Badge -->
+                        <div class="grid grid-cols-4 gap-4 mb-6">
                             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div>
@@ -137,9 +137,13 @@ class Renderer {
                                     <span class="text-2xl">🎯</span>
                                 </div>
                             </div>
+                            
+                            <div id="current-badge-card" class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                                <!-- Badge will be inserted here -->
+                            </div>
                         </div>
 
-                        <!-- Next Badge Progress -->
+                        <!-- Next Badge Progress (compact) -->
                         <div id="next-badge-progress"></div>
 
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
@@ -317,78 +321,84 @@ class Renderer {
         if (completionElement) completionElement.textContent = `${completion}%`;
     }
     
-    // Replace the renderNextBadgeProgress method in render.js (around line 350)
-
-async renderNextBadgeProgress() {
-    const container = document.getElementById('next-badge-progress');
-    if (!container) {
-        console.log('No badge progress container found');
-        return;
-    }
-    
-    try {
-        // Get current badge
-        const themeResponse = await fetch(`/api/users/${this.app.currentUser.id}/current-theme`);
-        const currentBadge = themeResponse.ok ? await themeResponse.json() : null;
+    async renderNextBadgeProgress() {
+        const container = document.getElementById('next-badge-progress');
+        const badgeCard = document.getElementById('current-badge-card');
         
-        // Get next badge info
-        const nextBadge = await this.app.getNextBadge();
-        console.log('Current badge:', currentBadge, 'Next badge:', nextBadge);
+        if (!container && !badgeCard) return;
         
-        let badgeHTML = '';
-        
-        // Show current badge if user has one
-        if (currentBadge) {
-            badgeHTML += `
-                <div class="badge-progress-card bg-white rounded-xl p-6 mb-4 shadow-sm border border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-800">Current Badge: ${currentBadge.icon} ${currentBadge.name}</h3>
-                            <p class="text-sm text-gray-600">${currentBadge.description}</p>
+        try {
+            // Get current badge
+            const themeResponse = await fetch(`/api/users/${this.app.currentUser.id}/current-theme`);
+            const currentBadge = themeResponse.ok ? await themeResponse.json() : null;
+            
+            // Get next badge info
+            const nextBadge = await this.app.getNextBadge();
+            
+            // Render current badge in the 4th stats card
+            if (badgeCard) {
+                if (currentBadge) {
+                    badgeCard.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 mb-1">Current Badge</p>
+                                <p class="text-lg font-bold text-gray-800">${currentBadge.name}</p>
+                            </div>
+                            <span class="text-2xl">${currentBadge.icon}</span>
                         </div>
-                        <div class="text-4xl">${currentBadge.icon}</div>
+                    `;
+                } else {
+                    badgeCard.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 mb-1">Current Badge</p>
+                                <p class="text-lg font-bold text-gray-400">None yet</p>
+                            </div>
+                            <span class="text-2xl opacity-30">🏆</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Render next badge progress (compact)
+            if (container && nextBadge) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-xl opacity-50">${nextBadge.icon}</span>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">Next: ${nextBadge.name} - ${nextBadge.daysRemaining} days to go</p>
+                                    <div class="flex items-center space-x-2 mt-1">
+                                        <div class="w-32 bg-gray-200 rounded-full h-2">
+                                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500" 
+                                                 style="width: ${nextBadge.progress}%">
+                                            </div>
+                                        </div>
+                                        <span class="text-xs text-gray-500">${nextBadge.currentStreak}/${nextBadge.days} days</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                `;
+            } else if (container) {
+                container.innerHTML = '';
+            }
+        } catch (err) {
+            console.error('Error rendering badge progress:', err);
+            if (container) container.innerHTML = '';
+            if (badgeCard) badgeCard.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 mb-1">Current Badge</p>
+                        <p class="text-lg font-bold text-gray-400">Loading...</p>
+                    </div>
+                    <span class="text-2xl opacity-30">🏆</span>
                 </div>
             `;
         }
-        
-        // Show next badge progress
-        if (nextBadge) {
-            badgeHTML += `
-                <div class="badge-progress-card bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-200">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-800">Next Badge: ${nextBadge.icon} ${nextBadge.name}</h3>
-                            <p class="text-sm text-gray-600">${nextBadge.daysRemaining} more days needed!</p>
-                        </div>
-                        <div class="text-3xl opacity-50">${nextBadge.icon}</div>
-                    </div>
-                    <div class="badge-progress-bar w-full bg-gray-200 rounded-full h-3">
-                        <div class="badge-progress-bar-fill h-3 rounded-full transition-all duration-500" 
-                             style="width: ${nextBadge.progress}%">
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">Current streak: ${nextBadge.currentStreak} days</p>
-                </div>
-            `;
-        } else if (currentBadge) {
-            // User has all badges
-            badgeHTML += `
-                <div class="badge-progress-card bg-white rounded-xl p-6 mb-6 shadow-sm border border-gray-200">
-                    <div class="text-center">
-                        <p class="text-lg font-semibold text-gray-800">🎉 You've earned all badges! 🎉</p>
-                        <p class="text-sm text-gray-600 mt-2">Keep up your streak to maintain your legendary status!</p>
-                    </div>
-                </div>
-            `;
-        }
-        
-        container.innerHTML = badgeHTML;
-    } catch (err) {
-        console.error('Error rendering badge progress:', err);
-        container.innerHTML = '';
     }
-}
     
     updateModalGoals() {
         const goalsList = document.getElementById('goalsList');
