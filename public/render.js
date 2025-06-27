@@ -17,24 +17,52 @@ class Renderer {
 
     renderLogin() {
         return `
-            <div class="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
-                <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md transform transition-all hover:scale-105">
-                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Daily Challenge</h1>
-                    <p class="text-gray-600 mb-6">Track your goals, build habits</p>
+            <div class="min-h-screen bg-white flex items-center justify-center p-4">
+                <div class="w-full max-w-md">
+                    <!-- Logo/Title -->
+                    <div class="text-center mb-12">
+                        <h1 class="text-6xl font-black text-black mb-2">
+                            DO<span class="text-red-600">HARD</span>SHIT
+                        </h1>
+                        <p class="text-xl text-gray-800 font-bold">.TODAY</p>
+                        <div class="w-24 h-1 bg-red-600 mx-auto mt-4"></div>
+                    </div>
                     
-                    <input 
-                        type="text" 
-                        id="nameInput" 
-                        placeholder="Enter your name"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
-                    />
+                    <!-- Main Card -->
+                    <div class="bg-white border-4 border-black p-8">
+                        <p class="text-lg text-gray-700 font-bold text-center mb-8">
+                            NO EXCUSES. NO BULLSHIT.<br/>
+                            <span class="text-red-600">GET SHIT DONE.</span>
+                        </p>
+                        
+                        <input 
+                            type="text" 
+                            id="nameInput" 
+                            placeholder="YOUR NAME"
+                            class="w-full px-4 py-4 border-3 border-black text-lg font-bold placeholder-gray-500 focus:outline-none focus:border-red-600 mb-6 uppercase"
+                            style="border-width: 3px;"
+                        />
+                        
+                        <button 
+                            id="loginBtn"
+                            class="w-full bg-black hover:bg-red-600 text-white py-4 text-xl font-black tracking-wider transition-all duration-200 transform hover:scale-105"
+                        >
+                            START CRUSHING IT
+                        </button>
+                        
+                        <div class="mt-8 pt-6 border-t-2 border-gray-200">
+                            <div class="flex justify-between text-sm font-bold text-gray-600">
+                                <span>💀 NO COMFORT ZONE</span>
+                                <span>🔥 DAILY GRIND</span>
+                                <span>⚡ PURE FOCUS</span>
+                            </div>
+                        </div>
+                    </div>
                     
-                    <button 
-                        id="loginBtn"
-                        class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                    >
-                        Start Challenge
-                    </button>
+                    <!-- Bottom Text -->
+                    <p class="text-center mt-8 text-gray-600 font-bold">
+                        STOP BEING SOFT. START TODAY.
+                    </p>
                 </div>
             </div>
         `;
@@ -56,17 +84,17 @@ class Renderer {
                 <header class="bg-white shadow-sm border-b border-gray-200">
                     <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                            <div class="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-bold">
                                 ${this.app.currentUser.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                                <h1 class="text-xl font-bold text-gray-800">Daily Challenge</h1>
-                                <p class="text-sm text-gray-600">Welcome back, ${this.app.currentUser.name}!</p>
+                                <h1 class="text-xl font-black text-gray-800">DO<span class="text-red-600">HARD</span>SHIT</h1>
+                                <p class="text-sm text-gray-600">Get after it, ${this.app.currentUser.name}!</p>
                             </div>
                         </div>
                         <div class="flex items-center space-x-4">
                             <div class="text-right">
-                                <p class="text-2xl font-bold text-blue-600">${this.app.currentUser.total_points} points</p>
+                                <p class="text-2xl font-bold text-black">${this.app.currentUser.total_points} points</p>
                                 <p class="text-xs text-gray-500">Total earned</p>
                             </div>
                             <div class="flex space-x-2">
@@ -112,7 +140,7 @@ class Renderer {
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="text-sm text-gray-600 mb-1">Today's Points</p>
-                                        <p class="text-2xl font-bold text-blue-600">${todayPoints}</p>
+                                        <p class="text-2xl font-bold text-black">${todayPoints}</p>
                                     </div>
                                     <span class="text-2xl">🏅</span>
                                 </div>
@@ -132,7 +160,7 @@ class Renderer {
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="text-sm text-gray-600 mb-1">Challenge Days</p>
-                                        <p class="text-2xl font-bold text-purple-600">${challengeDaysText}</p>
+                                        <p class="text-2xl font-bold text-red-600">${challengeDaysText}</p>
                                     </div>
                                     <span class="text-2xl">🎯</span>
                                 </div>
@@ -160,7 +188,7 @@ class Renderer {
                                 
                                 <!-- Progress Bar -->
                                 <div class="mt-4 w-full bg-gray-200 rounded-full h-2">
-                                    <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300" 
+                                    <div class="bg-black h-2 rounded-full transition-all duration-300" 
                                          style="width: ${challengeProgress}%">
                                     </div>
                                 </div>
@@ -181,7 +209,7 @@ class Renderer {
                     
                     <button
                         id="newChallengeBtn"
-                        class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                        class="w-full bg-black hover:bg-red-600 text-white py-3 rounded-lg font-bold transition-all transform hover:scale-105"
                     >
                         ${this.app.activeChallenge ? 'Create New Challenge' : 'Create Your First Challenge'}
                     </button>
@@ -254,7 +282,7 @@ updateGoalItem(goalIndex) {
                                 id="challengeName"
                                 value="${this.app.newChallenge.name}"
                                 placeholder="e.g., 30-Day Fitness Challenge"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                             />
                         </div>
                         
@@ -266,7 +294,7 @@ updateGoalItem(goalIndex) {
                                 value="${this.app.newChallenge.duration}"
                                 min="1" 
                                 max="365"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                             />
                         </div>
                         
@@ -281,7 +309,7 @@ updateGoalItem(goalIndex) {
                     <div class="flex space-x-3 mt-6">
                         <button 
                             onclick="window.app.challengeManager.createChallenge()"
-                            class="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                            class="flex-1 bg-black hover:bg-red-600 text-white py-2 rounded-lg font-bold transition-all"
                         >
                             Create Challenge
                         </button>
@@ -316,11 +344,11 @@ updateGoalItem(goalIndex) {
         const completion = this.app.progressManager.getCompletionPercentage();
         
         // Update points in header
-        const headerPoints = document.querySelector('.text-blue-600');
+        const headerPoints = document.querySelector('.text-black');
         if (headerPoints) headerPoints.textContent = `${this.app.currentUser.total_points} points`;
         
         // Update today's points card
-        const todayPointsElement = document.querySelector('.grid .text-2xl.text-blue-600');
+        const todayPointsElement = document.querySelector('.grid .text-2xl.text-black');
         if (todayPointsElement) todayPointsElement.textContent = todayPoints;
         
         // Update completion percentage
@@ -378,7 +406,7 @@ updateGoalItem(goalIndex) {
                                     <p class="text-sm font-medium text-gray-800">Next: ${nextBadge.name} - ${nextBadge.daysRemaining} days to go</p>
                                     <div class="flex items-center space-x-2 mt-1">
                                         <div class="w-32 bg-gray-200 rounded-full h-2">
-                                            <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500" 
+                                            <div class="bg-black h-2 rounded-full transition-all duration-500" 
                                                  style="width: ${nextBadge.progress}%">
                                             </div>
                                         </div>
@@ -417,7 +445,7 @@ updateGoalItem(goalIndex) {
                             type="text" 
                             value="${goal}"
                             data-goal-index="${index}"
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 goal-input"
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black goal-input"
                             placeholder="Goal ${index + 1}"
                         />
                         ${this.app.newChallenge.goals.length > 1 ? `
@@ -427,7 +455,7 @@ updateGoalItem(goalIndex) {
                         ` : ''}
                     </div>
                 `).join('')}
-                <button id="addGoalBtn" class="flex items-center space-x-2 text-blue-500 hover:text-blue-700 text-sm">
+                <button id="addGoalBtn" class="flex items-center space-x-2 text-black hover:text-red-600 text-sm font-bold">
                     <span>➕</span>
                     <span>Add Goal</span>
                 </button>
