@@ -320,7 +320,7 @@ app.post('/api/users/:userId/check-badges', async (req, res) => {
     // Check if user has completed ANY goals today
     const todayProgress = await pool.query(`
       SELECT COUNT(*) as completed_count
-      FROM daily_progress
+      FROM daily_progress_v2
       WHERE user_id = $1 
         AND date = $2
         AND completed = true
@@ -331,7 +331,7 @@ app.post('/api/users/:userId/check-badges', async (req, res) => {
     // Get all days where user completed at least one goal (last 100 days)
     const progressDays = await pool.query(`
       SELECT DISTINCT date::text as date
-      FROM daily_progress
+      FROM daily_progress_v2
       WHERE user_id = $1 
         AND completed = true
         AND date >= CURRENT_DATE - INTERVAL '100 days'
@@ -497,6 +497,7 @@ app.get('/api/users/:userId/current-theme', async (req, res) => {
   }
 });
 // ONE-TIME BADGE SYSTEM BRUTAL FIX
+// ONE-TIME BADGE SYSTEM BRUTAL FIX - FIXED VERSION
 app.post('/api/badges/brutal-fix', async (req, res) => {
   const client = await pool.connect();
   
@@ -540,7 +541,7 @@ app.post('/api/badges/brutal-fix', async (req, res) => {
       const today = new Date();
       const progressDays = await client.query(`
         SELECT DISTINCT date::text as date
-        FROM daily_progress
+        FROM daily_progress_v2
         WHERE user_id = $1 
           AND completed = true
           AND date >= CURRENT_DATE - INTERVAL '100 days'
@@ -566,7 +567,7 @@ app.post('/api/badges/brutal-fix', async (req, res) => {
       const todayStr = today.toISOString().split('T')[0];
       const todayProgress = await client.query(`
         SELECT COUNT(*) as completed_count
-        FROM daily_progress
+        FROM daily_progress_v2
         WHERE user_id = $1 AND date = $2 AND completed = true
       `, [user.id, todayStr]);
       
