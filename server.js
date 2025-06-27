@@ -335,7 +335,7 @@ app.post('/api/users/:userId/check-badges', async (req, res) => {
       FROM daily_progress_v2
       WHERE user_id = $1 
         AND completed = true
-        AND date >= CURRENT_DATE - INTERVAL '100 days'
+        AND date::date >= CURRENT_DATE - INTERVAL '100 days'
       ORDER BY date DESC
     `, [userId]);
     
