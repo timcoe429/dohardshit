@@ -383,16 +383,26 @@ updateGoalItem(goalIndex) {
                         </div>
                     `;
                 } else {
-                    badgeCard.innerHTML = `
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600 mb-1">Current Badge</p>
-                                <p class="text-lg font-bold text-gray-400">None yet</p>
-                            </div>
-                            <span class="text-2xl opacity-30">🏆</span>
-                        </div>
-                    `;
-                }
+    // BE A DICK ABOUT HAVING NO BADGES
+    const shameMessages = [
+        "None. You're soft.",
+        "Nothing. Pathetic.",
+        "Zero. Weak.",
+        "None. Try harder.",
+        "Nothing. Sad."
+    ];
+    const randomShame = shameMessages[Math.floor(Math.random() * shameMessages.length)];
+    
+    badgeCard.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Current Badge</p>
+                <p class="text-lg font-bold text-red-600">${randomShame}</p>
+            </div>
+            <span class="text-2xl opacity-30">💀</span>
+        </div>
+    `;
+}
             }
             
             // Render next badge progress (compact)
