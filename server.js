@@ -145,12 +145,12 @@ async function initDB() {
     const badgeCheck = await pool.query('SELECT COUNT(*) FROM badges');
     if (badgeCheck.rows[0].count == 0) {
       await pool.query(`
-        INSERT INTO badges (name, description, icon, category, requirement_type, requirement_value, theme_class, rarity) VALUES
-        ('On Fire', '3 day streak', '🔥', 'streak', 'streak_days', 3, 'theme-fire', 'common'),
-        ('Lightning', '7 day streak', '⚡', 'streak', 'streak_days', 7, 'theme-lightning', 'uncommon'),
-        ('Diamond Hands', '30 day streak', '💎', 'streak', 'streak_days', 30, 'theme-diamond', 'rare'),
-        ('Legendary', '100 day streak', '👑', 'streak', 'streak_days', 100, 'theme-legendary', 'legendary')
-      `);
+  INSERT INTO badges (name, description, icon, category, requirement_type, requirement_value, theme_class, rarity) VALUES
+  ('BEAST MODE', '3 day streak - You showed up', '🔥', 'streak', 'streak_days', 3, 'theme-beast', 'common'),
+  ('WARRIOR', '7 day streak - Now we''re talking', '⚡', 'streak', 'streak_days', 7, 'theme-warrior', 'uncommon'),
+  ('SAVAGE', '30 day streak - Absolute animal', '💀', 'streak', 'streak_days', 30, 'theme-savage', 'rare'),
+  ('LEGEND', '100 day streak - Fucking unstoppable', '👑', 'streak', 'streak_days', 100, 'theme-legend', 'legendary')
+`);
     }
 
     // Create indices for performance
@@ -309,32 +309,42 @@ app.post('/api/users/:userId/check-badges', async (req, res) => {
   try {
     const { userId } = req.params;
     const newBadges = [];
+    const lostBadges = [];
     
     console.log(`Checking badges for user ${userId}`);
     
-    // Get the last 30 days of progress for this user
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+    // Get today's date
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
     
-    // Get all days where user completed at least one goal
+    // Check if user has completed ANY goals today
+    const todayProgress = await pool.query(`
+      SELECT COUNT(*) as completed_count
+      FROM daily_progress
+      WHERE user_id = $1 
+        AND date = $2
+        AND completed = true
+    `, [userId, todayStr]);
+    
+    const hasProgressToday = todayProgress.rows[0].completed_count > 0;
+    
+    // Get all days where user completed at least one goal (last 100 days)
     const progressDays = await pool.query(`
       SELECT DISTINCT date::text as date
-      FROM daily_progress_v2
+      FROM daily_progress
       WHERE user_id = $1 
         AND completed = true
-        AND date >= $2
+        AND date >= CURRENT_DATE - INTERVAL '100 days'
       ORDER BY date DESC
-    `, [userId, thirtyDaysAgoStr]);
+    `, [userId]);
     
     console.log(`Found ${progressDays.rows.length} days with progress`);
     
-    // Calculate streak manually
+    // Calculate current streak
     let currentStreak = 0;
-    const today = new Date();
     
-    // Check each day backwards from today
-    for (let i = 0; i < 30; i++) {
+    // Check each day backwards from yesterday (not today)
+    for (let i = 1; i <= 100; i++) {
       const checkDate = new Date(today);
       checkDate.setDate(checkDate.getDate() - i);
       const dateStr = checkDate.toISOString().split('T')[0];
@@ -343,16 +353,21 @@ app.post('/api/users/:userId/check-badges', async (req, res) => {
       
       if (hasProgress) {
         currentStreak++;
-      } else if (i > 0) { // Don't break streak if today has no progress yet
-        break;
+      } else {
+        break; // Streak broken
       }
+    }
+    
+    // If user has progress today, add 1 to streak
+    if (hasProgressToday) {
+      currentStreak++;
     }
     
     console.log(`Current streak: ${currentStreak} days`);
     
     // Get user's existing badges
     const existingBadges = await pool.query(
-      'SELECT badge_id FROM user_badges WHERE user_id = $1',
+      'SELECT badge_id, badge_name FROM user_badges ub JOIN badges b ON b.id = ub.badge_id WHERE ub.user_id = $1',
       [userId]
     );
     const existingBadgeIds = existingBadges.rows.map(row => row.badge_id);
@@ -362,10 +377,21 @@ app.post('/api/users/:userId/check-badges', async (req, res) => {
       "SELECT * FROM badges WHERE requirement_type = 'streak_days' ORDER BY requirement_value ASC"
     );
     
-    // Check which badges user should have
+    // BRUTAL PART: Remove badges user no longer deserves
     for (const badge of allBadges.rows) {
-      if (currentStreak >= badge.requirement_value && !existingBadgeIds.includes(badge.id)) {
-        // Award this badge
+      const hasBadge = existingBadgeIds.includes(badge.id);
+      const deservesBadge = currentStreak >= badge.requirement_value;
+      
+      if (hasBadge && !deservesBadge) {
+        // LOSE THE BADGE - YOU DON'T DESERVE IT ANYMORE
+        await pool.query(
+          'DELETE FROM user_badges WHERE user_id = $1 AND badge_id = $2',
+          [userId, badge.id]
+        );
+        lostBadges.push(badge);
+        console.log(`REMOVED ${badge.name} badge from user ${userId} - streak broken!`);
+      } else if (!hasBadge && deservesBadge) {
+        // Award new badge
         await pool.query(
           'INSERT INTO user_badges (user_id, badge_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
           [userId, badge.id]
@@ -375,7 +401,7 @@ app.post('/api/users/:userId/check-badges', async (req, res) => {
       }
     }
     
-    res.json({ newBadges, currentStreak });
+    res.json({ newBadges, lostBadges, currentStreak });
   } catch (err) {
     console.error('Check badges error details:', err);
     res.status(500).json({ error: 'Failed to check badges', details: err.message });
@@ -449,7 +475,7 @@ app.get('/api/users/:userId/current-theme', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Get user's highest streak badge
+    // Get user's highest streak badge (if they still have any)
     const result = await pool.query(`
       SELECT b.* 
       FROM user_badges ub
@@ -462,6 +488,7 @@ app.get('/api/users/:userId/current-theme', async (req, res) => {
     if (result.rows.length > 0) {
       res.json(result.rows[0]);
     } else {
+      // User has no badges - they need to earn them
       res.json(null);
     }
   } catch (err) {
