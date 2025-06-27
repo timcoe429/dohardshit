@@ -367,7 +367,7 @@ app.post('/api/users/:userId/check-badges', async (req, res) => {
     
     // Get user's existing badges
     const existingBadges = await pool.query(
-      'SELECT badge_id, badge_name FROM user_badges ub JOIN badges b ON b.id = ub.badge_id WHERE ub.user_id = $1',
+      'SELECT badge_id, b.name as badge_name FROM user_badges ub JOIN badges b ON b.id = ub.badge_id WHERE ub.user_id = $1',
       [userId]
     );
     const existingBadgeIds = existingBadges.rows.map(row => row.badge_id);
