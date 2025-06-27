@@ -159,11 +159,11 @@ async init() {
             
             // Define badge milestones
             const milestones = [
-                { days: 3, name: 'On Fire', icon: '🔥' },
-                { days: 7, name: 'Lightning', icon: '⚡' },
-                { days: 30, name: 'Diamond Hands', icon: '💎' },
-                { days: 100, name: 'Legendary', icon: '👑' }
-            ];
+    { days: 3, name: 'BEAST MODE', icon: '🔥' },
+    { days: 7, name: 'WARRIOR', icon: '⚡' },
+    { days: 30, name: 'SAVAGE', icon: '💀' },
+    { days: 100, name: 'LEGEND', icon: '👑' }
+];
             
             // Find next badge
             for (const milestone of milestones) {
