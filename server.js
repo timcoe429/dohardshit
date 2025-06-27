@@ -496,7 +496,128 @@ app.get('/api/users/:userId/current-theme', async (req, res) => {
     res.status(500).json({ error: 'Failed to get theme' });
   }
 });
-
+// ONE-TIME BADGE SYSTEM BRUTAL FIX
+app.post('/api/badges/brutal-fix', async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    // Step 1: Update all badge names to be more aggressive
+    await client.query(`
+      UPDATE badges SET 
+        name = CASE 
+          WHEN requirement_value = 3 THEN 'BEAST MODE'
+          WHEN requirement_value = 7 THEN 'WARRIOR'
+          WHEN requirement_value = 30 THEN 'SAVAGE'
+          WHEN requirement_value = 100 THEN 'LEGEND'
+          ELSE name
+        END,
+        description = CASE
+          WHEN requirement_value = 3 THEN '3 day streak - You showed up'
+          WHEN requirement_value = 7 THEN '7 day streak - Now we''re talking'
+          WHEN requirement_value = 30 THEN '30 day streak - Absolute animal'
+          WHEN requirement_value = 100 THEN '100 day streak - Fucking unstoppable'
+          ELSE description
+        END,
+        theme_class = CASE
+          WHEN requirement_value = 3 THEN 'theme-beast'
+          WHEN requirement_value = 7 THEN 'theme-warrior'
+          WHEN requirement_value = 30 THEN 'theme-savage'
+          WHEN requirement_value = 100 THEN 'theme-legend'
+          ELSE theme_class
+        END
+      WHERE requirement_type = 'streak_days'
+    `);
+    
+    // Step 2: Get all users and check their ACTUAL streaks
+    const users = await client.query('SELECT id, name FROM users');
+    
+    let fixedUsers = [];
+    
+    for (const user of users.rows) {
+      // Calculate user's current streak
+      const today = new Date();
+      const progressDays = await client.query(`
+        SELECT DISTINCT date::text as date
+        FROM daily_progress
+        WHERE user_id = $1 
+          AND completed = true
+          AND date >= CURRENT_DATE - INTERVAL '100 days'
+        ORDER BY date DESC
+      `, [user.id]);
+      
+      let currentStreak = 0;
+      
+      // Check streak backwards from yesterday
+      for (let i = 1; i <= 100; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+        
+        if (progressDays.rows.some(row => row.date === dateStr)) {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
+      
+      // Check today
+      const todayStr = today.toISOString().split('T')[0];
+      const todayProgress = await client.query(`
+        SELECT COUNT(*) as completed_count
+        FROM daily_progress
+        WHERE user_id = $1 AND date = $2 AND completed = true
+      `, [user.id, todayStr]);
+      
+      if (todayProgress.rows[0].completed_count > 0) {
+        currentStreak++;
+      }
+      
+      // Step 3: Remove ALL badges this user doesn't deserve
+      const badges = await client.query(`
+        SELECT b.id, b.requirement_value, b.name 
+        FROM user_badges ub 
+        JOIN badges b ON b.id = ub.badge_id 
+        WHERE ub.user_id = $1 AND b.requirement_type = 'streak_days'
+      `, [user.id]);
+      
+      let removedBadges = [];
+      
+      for (const badge of badges.rows) {
+        if (currentStreak < badge.requirement_value) {
+          // DELETE THE BADGE - THEY DON'T DESERVE IT
+          await client.query(
+            'DELETE FROM user_badges WHERE user_id = $1 AND badge_id = $2',
+            [user.id, badge.id]
+          );
+          removedBadges.push(badge.name);
+        }
+      }
+      
+      fixedUsers.push({
+        user: user.name,
+        currentStreak,
+        removedBadges
+      });
+    }
+    
+    await client.query('COMMIT');
+    
+    res.json({ 
+      success: true, 
+      message: 'Badge system brutally fixed!',
+      details: fixedUsers
+    });
+    
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Brutal fix error:', err);
+    res.status(500).json({ error: 'Failed to fix badges', details: err.message });
+  } finally {
+    client.release();
+  }
+});
 // === CHAT ENDPOINTS ===
 
 // Get chat messages
