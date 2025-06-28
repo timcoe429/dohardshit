@@ -93,21 +93,6 @@ const CHALLENGE_TEMPLATES = [
         ]
     },
     {
-        id: 'kickstart',
-        name: 'Kickstart',
-        description: 'Build momentum with simple daily wins',
-        duration: 7,
-        difficulty: 'EASY',
-        category: 'Beginner',
-        icon: '🚀',
-        color: 'from-green-400 to-blue-400',
-        goals: [
-            '85oz of water',
-            'Walk for 20 minutes',
-            'No phone for first 90 min of day'
-        ]
-    },
-    {
         id: 'morning-champion',
         name: 'Morning Champion',
         description: 'Win your mornings, win your life',
@@ -135,6 +120,21 @@ const CHALLENGE_TEMPLATES = [
             'Drink 85oz water',
             'Take a 15-minute walk after lunch',
             'Eat one serving of vegetables'
+        ]
+    },
+    {
+        id: 'kickstart',
+        name: 'Kickstart',
+        description: 'Build momentum with simple daily wins',
+        duration: 7,
+        difficulty: 'EASY',
+        category: 'Beginner',
+        icon: '🚀',
+        color: 'from-green-400 to-blue-400',
+        goals: [
+            '85oz of water',
+            'Walk for 20 minutes',
+            'No phone for first 90 min of day'
         ]
     }
 ];
