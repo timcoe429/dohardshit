@@ -209,7 +209,7 @@ class Renderer {
                     
                     <button
                         id="newChallengeBtn"
-                        onclick="window.app.showCreateChallengeModal()"
+                        onclick="window.app.showTemplateSelector()"
                         class="w-full bg-black hover:bg-red-600 text-white py-3 rounded-lg font-bold transition-all transform hover:scale-105"
                     >
                         ${this.app.activeChallenge ? 'Create New Challenge' : 'Create Your First Challenge'}
