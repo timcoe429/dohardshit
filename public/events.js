@@ -31,7 +31,7 @@ class EventHandler {
     attachDashboardEvents() {
         const logoutBtn = document.getElementById('logoutBtn');
         const goalItems = document.querySelectorAll('.goal-item');
-        const newChallengeBtn = document.getElementById('newChallengeBtn');
+        // REMOVED: const newChallengeBtn = document.getElementById('newChallengeBtn');
         const leaderboardBtn = document.getElementById('leaderboardBtn');
         const userMgmtBtn = document.getElementById('userMgmtBtn');
         const statsBtn = document.getElementById('statsBtn');
@@ -52,11 +52,7 @@ class EventHandler {
             });
         });
         
-        if (newChallengeBtn) {
-            newChallengeBtn.addEventListener('click', () => {
-                this.app.showCreateChallengeModal();
-            });
-        }
+        // REMOVED: Event listener for newChallengeBtn since we're using onclick
         
         if (leaderboardBtn) {
             leaderboardBtn.addEventListener('click', () => {
