@@ -102,9 +102,9 @@ const CHALLENGE_TEMPLATES = [
         icon: '🚀',
         color: 'from-green-400 to-blue-400',
         goals: [
-            'Drink 8 glasses of water',
+            '85oz of water',
             'Walk for 20 minutes',
-            'No phone for first 30 min of day'
+            'No phone for first 90 min of day'
         ]
     },
     {
@@ -118,7 +118,7 @@ const CHALLENGE_TEMPLATES = [
         color: 'from-yellow-400 to-orange-400',
         goals: [
             'Make your bed',
-            'Stretch for 5 minutes',
+            'Stretch for 15 minutes',
             'Write 3 things you\'re grateful for'
         ]
     },
@@ -132,8 +132,8 @@ const CHALLENGE_TEMPLATES = [
         icon: '💧',
         color: 'from-blue-400 to-cyan-400',
         goals: [
-            'Drink water before coffee',
-            'Take a 5-minute walk after lunch',
+            'Drink 85oz water',
+            'Take a 15-minute walk after lunch',
             'Eat one serving of vegetables'
         ]
     }
@@ -211,9 +211,10 @@ class TemplateSelector {
                                         </div>
                                         <span class="inline-block px-2 py-1 text-xs font-bold rounded mt-1 ${
                                             template.difficulty === 'PSYCHO' ? 'bg-black text-white' :
-                                            template.difficulty === 'EXTREME' ? 'bg-red-600 text-white' :
-                                            template.difficulty === 'HARD' ? 'bg-orange-500 text-white' :
-                                            'bg-yellow-500 text-white'
+template.difficulty === 'EXTREME' ? 'bg-red-600 text-white' :
+template.difficulty === 'HARD' ? 'bg-orange-500 text-white' :
+template.difficulty === 'MEDIUM' ? 'bg-yellow-500 text-white' :
+'bg-green-500 text-white'
                                         }">
                                             ${template.difficulty}
                                         </span>
