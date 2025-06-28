@@ -29,22 +29,23 @@ class ChallengeApp {
        this.eventHandler = new EventHandler(this);
        this.leaderboardManager = new LeaderboardManager(this);
        this.statsManager = new StatsManager(this);
+       this.templateSelector = new TemplateSelector(this);
 
-      this.init().catch(console.error);
+       this.init().catch(console.error);
        
        // Make app globally accessible
        window.app = this;
    }
 
-async init() {
-    // Check for saved login first
-    const hasAutoLoggedIn = await this.authManager.checkSavedLogin();
-    
-    // Only render login screen if no saved login
-    if (!hasAutoLoggedIn) {
-        this.render();
-    }
-}
+   async init() {
+       // Check for saved login first
+       const hasAutoLoggedIn = await this.authManager.checkSavedLogin();
+       
+       // Only render login screen if no saved login
+       if (!hasAutoLoggedIn) {
+           this.render();
+       }
+   }
    
    render() {
        this.renderer.render();
@@ -74,7 +75,11 @@ async init() {
        }
    }
    
-   // Modal methods
+   // Modal methods - Updated to show template selector first
+   showTemplateSelector() {
+       this.templateSelector.show();
+   }
+   
    showCreateChallengeModal() {
        this.showCreateChallenge = true;
        this.renderer.renderModal();
@@ -128,61 +133,64 @@ async init() {
    hideStatsModal() {
        this.statsManager.hideModal();
    }
+   
    // Theme management
-    async updateTheme() {
-        if (!this.currentUser) return;
-        
-        try {
-            const response = await fetch(`/api/users/${this.currentUser.id}/current-theme`);
-            const badge = await response.json();
-            
-            // Remove all theme classes
-            document.body.classList.remove('theme-fire', 'theme-lightning', 'theme-diamond', 'theme-legendary');
-            
-            // Apply new theme if user has a badge
-            if (badge && badge.theme_class) {
-                document.body.classList.add(badge.theme_class);
-            }
-        } catch (err) {
-            console.error('Update theme error:', err);
-        }
-    }
+   async updateTheme() {
+       if (!this.currentUser) return;
+       
+       try {
+           const response = await fetch(`/api/users/${this.currentUser.id}/current-theme`);
+           const badge = await response.json();
+           
+           // Remove all theme classes
+           document.body.classList.remove('theme-fire', 'theme-lightning', 'theme-diamond', 'theme-legendary');
+           
+           // Apply new theme if user has a badge
+           if (badge && badge.theme_class) {
+               document.body.classList.add(badge.theme_class);
+           }
+       } catch (err) {
+           console.error('Update theme error:', err);
+       }
+   }
+   
    async getNextBadge() {
-        if (!this.currentUser) return null;
-        
-        try {
-            // Get current streak from the server
-            const response = await fetch(`/api/users/${this.currentUser.id}/check-badges`, {
-                method: 'POST'
-            });
-            const { currentStreak } = await response.json();
-            
-            // Define badge milestones
-            const milestones = [
-    { days: 3, name: 'BEAST MODE', icon: '🔥' },
-    { days: 7, name: 'WARRIOR', icon: '⚡' },
-    { days: 30, name: 'SAVAGE', icon: '💀' },
-    { days: 100, name: 'LEGEND', icon: '👑' }
-];
-            
-            // Find next badge
-            for (const milestone of milestones) {
-                if (currentStreak < milestone.days) {
-                    return {
-                        ...milestone,
-                        currentStreak,
-                        daysRemaining: milestone.days - currentStreak,
-                        progress: Math.round((currentStreak / milestone.days) * 100)
-                    };
-                }
-            }
-            
-            return null; // Has all badges
-        } catch (err) {
-            console.error('Get next badge error:', err);
-            return null;
-        }
-    }
+       if (!this.currentUser) return null;
+       
+       try {
+           // Get current streak from the server
+           const response = await fetch(`/api/users/${this.currentUser.id}/check-badges`, {
+               method: 'POST'
+           });
+           const { currentStreak } = await response.json();
+           
+           // Define badge milestones
+           const milestones = [
+               { days: 3, name: 'On Fire', icon: '🔥' },
+               { days: 7, name: 'Lightning', icon: '⚡' },
+               { days: 30, name: 'Diamond Hands', icon: '💎' },
+               { days: 100, name: 'Legendary', icon: '👑' }
+           ];
+           
+           // Find next badge
+           for (const milestone of milestones) {
+               if (currentStreak < milestone.days) {
+                   return {
+                       ...milestone,
+                       currentStreak,
+                       daysRemaining: milestone.days - currentStreak,
+                       progress: Math.round((currentStreak / milestone.days) * 100)
+                   };
+               }
+           }
+           
+           return null; // Has all badges
+       } catch (err) {
+           console.error('Get next badge error:', err);
+           return null;
+       }
+   }
+   
    // User Management Methods
    async showUserManagement() {
        // Refresh leaderboard data before showing
@@ -220,31 +228,32 @@ async init() {
            alert('Failed to delete user');
        }
    }
+   
    // Add this method to app.js after the deleteUser method (around line 200)
-// This will let you manually check badges from the console
-
-checkBadgesManually() {
-    if (!this.currentUser) {
-        console.log('No user logged in');
-        return;
-    }
-    
-    fetch(`/api/users/${this.currentUser.id}/check-badges`, {
-        method: 'POST'
-    })
-    .then(res => res.json())
-    .then(data => {
-        console.log('Manual badge check:', data);
-        if (data.newBadges && data.newBadges.length > 0) {
-            data.newBadges.forEach(badge => {
-                this.progressManager.showBadgeNotification(badge);
-            });
-            this.updateTheme();
-            this.renderer.renderNextBadgeProgress();
-        }
-    })
-    .catch(err => console.error('Manual badge check error:', err));
-}
+   // This will let you manually check badges from the console
+   checkBadgesManually() {
+       if (!this.currentUser) {
+           console.log('No user logged in');
+           return;
+       }
+       
+       fetch(`/api/users/${this.currentUser.id}/check-badges`, {
+           method: 'POST'
+       })
+       .then(res => res.json())
+       .then(data => {
+           console.log('Manual badge check:', data);
+           if (data.newBadges && data.newBadges.length > 0) {
+               data.newBadges.forEach(badge => {
+                   this.progressManager.showBadgeNotification(badge);
+               });
+               this.updateTheme();
+               this.renderer.renderNextBadgeProgress();
+           }
+       })
+       .catch(err => console.error('Manual badge check error:', err));
+   }
+   
    renderUserManagementModal() {
        const existingModal = document.getElementById('userMgmtModal');
        if (existingModal) existingModal.remove();
