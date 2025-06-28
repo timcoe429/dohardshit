@@ -1,24 +1,6 @@
 // templates.js - Challenge Templates
 const CHALLENGE_TEMPLATES = [
-    {
-        id: '75-hard',
-        name: '75 Hard',
-        description: 'Transform your mind and body with zero compromises',
-        duration: 75,
-        difficulty: 'EXTREME',
-        category: 'Mind & Body',
-        icon: '🔥',
-        color: 'from-red-500 to-orange-600',
-        goals: [
-            'Follow a diet (no cheat meals)',
-            'Complete two 45-minute workouts (one must be outdoors)',
-            'Drink 1 gallon of water',
-            'Read 10 pages of non-fiction',
-            'Take a progress photo',
-            'No alcohol'
-        ]
-    },
-    {
+        {
         id: 'psycho-mode',
         name: 'PSYCHO MODE',
         description: '150 days of pure mental warfare. Not for the weak.',
@@ -37,6 +19,24 @@ const CHALLENGE_TEMPLATES = [
             'Journal 10 minutes',
             'No social media',
             'Strict carnivore diet'
+        ]
+    },
+    {
+        id: '75-hard',
+        name: '75 Hard',
+        description: 'Transform your mind and body with zero compromises',
+        duration: 75,
+        difficulty: 'EXTREME',
+        category: 'Mind & Body',
+        icon: '🔥',
+        color: 'from-red-500 to-orange-600',
+        goals: [
+            'Follow a diet (no cheat meals)',
+            'Complete two 45-minute workouts (one must be outdoors)',
+            'Drink 1 gallon of water',
+            'Read 10 pages of non-fiction',
+            'Take a progress photo',
+            'No alcohol'
         ]
     },
     {
