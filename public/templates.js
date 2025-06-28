@@ -40,24 +40,6 @@ const CHALLENGE_TEMPLATES = [
         ]
     },
     {
-        id: 'shred-mode',
-        name: 'Shred Mode',
-        description: 'Cut fat, reveal the beast within',
-        duration: 30,
-        difficulty: 'HARD',
-        category: 'Weight Loss',
-        icon: '⚡',
-        color: 'from-blue-500 to-purple-600',
-        goals: [
-            'Track all calories (deficit)',
-            'Morning cardio (30 min fasted)',
-            'Weight training (45 min)',
-            '10,000 steps minimum',
-            'No processed foods',
-            'Sleep 8 hours'
-        ]
-    },
-    {
         id: 'beast-builder',
         name: 'Beast Builder',
         description: 'Pack on serious muscle mass',
@@ -76,6 +58,24 @@ const CHALLENGE_TEMPLATES = [
         ]
     },
     {
+        id: 'shred-mode',
+        name: 'Shred Mode',
+        description: 'Cut fat, reveal the beast within',
+        duration: 30,
+        difficulty: 'HARD',
+        category: 'Weight Loss',
+        icon: '⚡',
+        color: 'from-blue-500 to-purple-600',
+        goals: [
+            'Track all calories (deficit)',
+            'Morning cardio (30 min fasted)',
+            'Weight training (45 min)',
+            '10,000 steps minimum',
+            'No processed foods',
+            'Sleep 8 hours'
+        ]
+    },
+    {
         id: 'warrior-monk',
         name: 'Warrior Monk',
         description: 'Master your mind, forge your spirit',
@@ -88,7 +88,7 @@ const CHALLENGE_TEMPLATES = [
             'Morning meditation (15 min)',
             'Breathwork (10 min)',
             'Physical training (30 min)',
-            'Read philosophy/stoicism',
+            'Read brainfood daily (20 min)',
             'Digital sunset at 8 PM'
         ]
     },
