@@ -91,6 +91,51 @@ const CHALLENGE_TEMPLATES = [
             'Read philosophy/stoicism',
             'Digital sunset at 8 PM'
         ]
+    },
+    {
+        id: 'kickstart',
+        name: 'Kickstart',
+        description: 'Build momentum with simple daily wins',
+        duration: 7,
+        difficulty: 'EASY',
+        category: 'Beginner',
+        icon: '🚀',
+        color: 'from-green-400 to-blue-400',
+        goals: [
+            'Drink 8 glasses of water',
+            'Walk for 20 minutes',
+            'No phone for first 30 min of day'
+        ]
+    },
+    {
+        id: 'morning-champion',
+        name: 'Morning Champion',
+        description: 'Win your mornings, win your life',
+        duration: 14,
+        difficulty: 'EASY',
+        category: 'Routine Building',
+        icon: '☀️',
+        color: 'from-yellow-400 to-orange-400',
+        goals: [
+            'Make your bed',
+            'Stretch for 5 minutes',
+            'Write 3 things you\'re grateful for'
+        ]
+    },
+    {
+        id: 'hydration-hero',
+        name: 'Hydration Hero',
+        description: 'Master the basics of health',
+        duration: 10,
+        difficulty: 'EASY',
+        category: 'Health Basics',
+        icon: '💧',
+        color: 'from-blue-400 to-cyan-400',
+        goals: [
+            'Drink water before coffee',
+            'Take a 5-minute walk after lunch',
+            'Eat one serving of vegetables'
+        ]
     }
 ];
 
@@ -130,7 +175,10 @@ class TemplateSelector {
         }
         
         this.hide();
-        this.app.showCreateChallengeModal();
+        // Small delay to ensure template modal is fully closed
+        setTimeout(() => {
+            this.app.showCreateChallengeModal();
+        }, 100);
     }
 
     render() {
