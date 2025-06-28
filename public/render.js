@@ -209,6 +209,7 @@ class Renderer {
                     
                     <button
                         id="newChallengeBtn"
+                        onclick="window.app.showCreateChallengeModal()"
                         class="w-full bg-black hover:bg-red-600 text-white py-3 rounded-lg font-bold transition-all transform hover:scale-105"
                     >
                         ${this.app.activeChallenge ? 'Create New Challenge' : 'Create Your First Challenge'}
@@ -245,34 +246,37 @@ class Renderer {
         `;
     }
 
-updateGoalItem(goalIndex) {
-    const goalElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
-    if (!goalElement) return;
+    updateGoalItem(goalIndex) {
+        const goalElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
+        if (!goalElement) return;
+        
+        const goal = this.app.activeChallenge.goals[goalIndex];
+        goalElement.outerHTML = this.renderGoalItem(goal, goalIndex);
+        
+        // Get the new element after replacing HTML
+        const newElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
+        
+        // Reattach event listener for the new element
+        newElement.addEventListener('click', () => {
+            console.log(`Reattaching click handler for goal ${goalIndex}`);
+            this.app.progressManager.toggleGoal(goalIndex);
+        });
+        
+        // Add click animation
+        setTimeout(() => {
+            newElement.classList.add('scale-95');
+            setTimeout(() => newElement.classList.remove('scale-95'), 100);
+        }, 10);
+    }
     
-    const goal = this.app.activeChallenge.goals[goalIndex];
-    goalElement.outerHTML = this.renderGoalItem(goal, goalIndex);
-    
-    // Get the new element after replacing HTML
-    const newElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
-    
-    // Reattach event listener for the new element
-    newElement.addEventListener('click', () => {
-        console.log(`Reattaching click handler for goal ${goalIndex}`);
-        this.app.progressManager.toggleGoal(goalIndex);
-    });
-    
-    // Add click animation
-    setTimeout(() => {
-        newElement.classList.add('scale-95');
-        setTimeout(() => newElement.classList.remove('scale-95'), 100);
-    }, 10);
-}
-    
-    renderCreateChallengeModal() {
+    renderModal() {
+        const existingModal = document.getElementById('challengeModal');
+        if (existingModal) existingModal.remove();
+        
         const modalHTML = `
-            <div id="createChallengeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md animate-in slide-in-from-bottom-4">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Create New Challenge</h2>
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-in" id="challengeModal">
+                <div class="bg-white rounded-xl p-6 w-full max-w-md slide-in-from-bottom-4" style="animation: slideInFromBottom 0.3s ease-out;">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Create New Challenge</h3>
                     
                     <div class="space-y-4">
                         <div>
@@ -281,8 +285,8 @@ updateGoalItem(goalIndex) {
                                 type="text" 
                                 id="challengeName"
                                 value="${this.app.newChallenge.name}"
-                                placeholder="e.g., 30-Day Fitness Challenge"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Enter challenge name"
                             />
                         </div>
                         
@@ -292,32 +296,44 @@ updateGoalItem(goalIndex) {
                                 type="number" 
                                 id="challengeDuration"
                                 value="${this.app.newChallenge.duration}"
-                                min="1" 
-                                max="365"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                                min="1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Daily Goals</label>
-                            <div id="goalsList" class="space-y-2">
-                                <!-- Goals will be rendered here -->
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Daily Goals</label>
+                            <div class="space-y-2" id="goalsList">
+                                ${this.app.newChallenge.goals.map((goal, index) => `
+                                    <div class="flex items-center space-x-2">
+                                        <input 
+                                            type="text" 
+                                            value="${goal}"
+                                            data-goal-index="${index}"
+                                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 goal-input"
+                                            placeholder="Goal ${index + 1}"
+                                        />
+                                        ${this.app.newChallenge.goals.length > 1 ? `
+                                            <button class="p-2 text-red-500 hover:text-red-700 remove-goal" data-goal-index="${index}">
+                                                <span>🗑️</span>
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                                <button id="addGoalBtn" class="flex items-center space-x-2 text-blue-500 hover:text-blue-700 text-sm">
+                                    <span>➕</span>
+                                    <span>Add Goal</span>
+                                </button>
                             </div>
                         </div>
                     </div>
                     
                     <div class="flex space-x-3 mt-6">
-                        <button 
-                            onclick="window.app.challengeManager.createChallenge()"
-                            class="flex-1 bg-black hover:bg-red-600 text-white py-2 rounded-lg font-bold transition-all"
-                        >
-                            Create Challenge
-                        </button>
-                        <button 
-                            onclick="window.app.hideCreateChallengeModal()"
-                            class="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
-                        >
+                        <button id="cancelChallengeBtn" class="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                             Cancel
+                        </button>
+                        <button id="createChallengeBtn" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                            Create Challenge
                         </button>
                     </div>
                 </div>
@@ -325,18 +341,7 @@ updateGoalItem(goalIndex) {
         `;
         
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
-        // Render goals after modal is in DOM
-        this.updateModalGoals();
-        
-        // Attach event listeners
-        document.getElementById('challengeName').addEventListener('input', (e) => {
-            this.app.newChallenge.name = e.target.value;
-        });
-        
-        document.getElementById('challengeDuration').addEventListener('input', (e) => {
-            this.app.newChallenge.duration = parseInt(e.target.value) || 7;
-        });
+        this.app.eventHandler.attachModalEvents();
     }
     
     updateStats() {
@@ -383,26 +388,16 @@ updateGoalItem(goalIndex) {
                         </div>
                     `;
                 } else {
-    // BE A DICK ABOUT HAVING NO BADGES
-    const shameMessages = [
-        "None. You're soft.",
-        "Nothing. Pathetic.",
-        "Zero. Weak.",
-        "None. Try harder.",
-        "Nothing. Sad."
-    ];
-    const randomShame = shameMessages[Math.floor(Math.random() * shameMessages.length)];
-    
-    badgeCard.innerHTML = `
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-sm text-gray-600 mb-1">Current Badge</p>
-                <p class="text-lg font-bold text-red-600">${randomShame}</p>
-            </div>
-            <span class="text-2xl opacity-30">💀</span>
-        </div>
-    `;
-}
+                    badgeCard.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600 mb-1">Current Badge</p>
+                                <p class="text-lg font-bold text-gray-400">None yet</p>
+                            </div>
+                            <span class="text-2xl opacity-30">🏆</span>
+                        </div>
+                    `;
+                }
             }
             
             // Render next badge progress (compact)
@@ -455,7 +450,7 @@ updateGoalItem(goalIndex) {
                             type="text" 
                             value="${goal}"
                             data-goal-index="${index}"
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black goal-input"
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 goal-input"
                             placeholder="Goal ${index + 1}"
                         />
                         ${this.app.newChallenge.goals.length > 1 ? `
@@ -465,7 +460,7 @@ updateGoalItem(goalIndex) {
                         ` : ''}
                     </div>
                 `).join('')}
-                <button id="addGoalBtn" class="flex items-center space-x-2 text-black hover:text-red-600 text-sm font-bold">
+                <button id="addGoalBtn" class="flex items-center space-x-2 text-blue-500 hover:text-blue-700 text-sm">
                     <span>➕</span>
                     <span>Add Goal</span>
                 </button>
