@@ -20,6 +20,7 @@ class ChallengeApp {
        this.leaderboard = [];
        this.showLeaderboard = false;
        this.showUserMgmt = false;
+       this.pastChallenges = [];
        
        // Initialize managers
        this.authManager = new AuthManager(this);
@@ -82,7 +83,11 @@ class ChallengeApp {
    
    showCreateChallengeModal() {
        this.showCreateChallenge = true;
+       const existingModal = document.getElementById('challengeModal');
+       if (existingModal) existingModal.remove();
+       
        this.renderer.renderModal();
+       this.eventHandler.attachModalEvents();
    }
    
    hideCreateChallengeModal() {

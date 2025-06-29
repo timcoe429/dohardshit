@@ -103,8 +103,22 @@ class AuthManager {
                 
                 if (this.app.challenges.length > 0) {
                     this.app.activeChallenge = this.app.challenges[0];
-                    await this.app.progressManager.initTodayProgress();
+                    
+                    // Check if active challenge is complete and archive it
+                    if (this.app.challengeManager.isChallengeComplete()) {
+                        await this.app.challengeManager.archiveCompletedChallenge();
+                        // Reload challenges after archiving
+                        this.app.challenges = await this.app.challengeManager.loadChallenges(user.id);
+                        this.app.activeChallenge = this.app.challenges.length > 0 ? this.app.challenges[0] : null;
+                    }
+                    
+                    if (this.app.activeChallenge) {
+                        await this.app.progressManager.initTodayProgress();
+                    }
                 }
+                
+                // Load past challenges
+                this.app.pastChallenges = await this.app.challengeManager.loadPastChallenges(user.id);
             } catch (err) {
                 console.error('Error loading user data:', err);
                 this.app.challenges = [];

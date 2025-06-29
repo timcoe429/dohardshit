@@ -163,6 +163,9 @@ class ProgressManager {
                     console.error('Badge check error:', err);
                 }
             }
+            
+            // Check if challenge is now complete
+            await this.app.challengeManager.checkAndHandleCompletion();
         } catch (err) {
             console.error('Failed to update progress:', err);
             // Revert local state on error

@@ -81,10 +81,11 @@ class Renderer {
         const completion = this.app.progressManager.getCompletionPercentage();
         const challengeDay = this.app.challengeManager.getCurrentChallengeDay();
         const challengeProgress = this.app.challengeManager.getChallengeProgress();
+        const isComplete = this.app.challengeManager.isChallengeComplete();
         
-        const challengeDaysText = challengeDay > 0 ? 
-            `${challengeDay}` : 
-            (this.app.activeChallenge ? 'Starting today' : 'No active challenge');
+        const challengeDaysText = this.app.activeChallenge ? 
+            (isComplete ? '0' : `${challengeDay}`) : 
+            'No active challenge';
         
         return `
             <div class="min-h-screen bg-gray-50">
@@ -141,7 +142,7 @@ class Renderer {
 
                 <!-- Main Content -->
                 <main class="max-w-4xl mx-auto px-4 py-8">
-                    ${this.app.activeChallenge ? `
+                    ${this.app.activeChallenge && !isComplete ? `
                         <!-- Stats Cards with Current Badge -->
                         <div class="grid grid-cols-4 gap-4 mb-6">
                             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
@@ -209,19 +210,33 @@ class Renderer {
                             </div>
                         </div>
                     ` : `
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-                            <h2 class="text-2xl font-bold text-gray-800 mb-4">No Active Challenge</h2>
-                            <p class="text-gray-600 mb-6">Create a new challenge to start tracking your goals!</p>
+                        <!-- No Active Challenge -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 p-8 text-center">
+                            <div class="text-6xl mb-4">🎯</div>
+                            <h2 class="text-2xl font-bold text-gray-800 mb-2">No Active Challenge</h2>
+                            <p class="text-gray-600 mb-6">Ready to push your limits? Create a new challenge and start crushing your goals.</p>
+                            <button
+                                onclick="window.app.showCreateChallengeModal()"
+                                class="bg-black hover:bg-red-600 text-white px-8 py-3 rounded-lg font-bold transition-all duration-200 transform hover:scale-105"
+                            >
+                                CREATE NEW CHALLENGE
+                            </button>
                         </div>
                     `}
                     
-                    <button
-                        id="newChallengeBtn"
-                        onclick="window.app.showTemplateSelector()"
-                        class="w-full bg-black hover:bg-red-600 text-white py-3 rounded-lg font-bold transition-all transform hover:scale-105"
-                    >
-                        ${this.app.activeChallenge ? 'Create New Challenge' : 'Create Your First Challenge'}
-                    </button>
+                    ${this.renderPastChallengesTable()}
+                    
+                    ${!this.app.activeChallenge || isComplete ? `
+                        <!-- Create New Challenge Button -->
+                        <div class="mt-6">
+                            <button
+                                onclick="window.app.showCreateChallengeModal()"
+                                class="w-full bg-black hover:bg-red-600 text-white py-3 rounded-lg font-bold transition-all duration-200 transform hover:scale-105"
+                            >
+                                CREATE NEW CHALLENGE
+                            </button>
+                        </div>
+                    ` : ''}
                 </main>
             </div>
         `;
@@ -509,5 +524,63 @@ class Renderer {
         `;
         
         document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    renderPastChallengesTable() {
+        if (!this.app.pastChallenges || this.app.pastChallenges.length === 0) {
+            return '';
+        }
+        
+        return `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="p-6 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-800">Past Challenges</h3>
+                    <p class="text-sm text-gray-600 mt-1">Your challenge history and performance</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Challenge</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tasks</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            ${this.app.pastChallenges.map(challenge => `
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="font-medium text-gray-900">${challenge.challenge_name}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        ${challenge.total_goals}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        ${challenge.duration} days
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <span class="font-medium text-green-600">${challenge.points_earned}</span> / ${challenge.points_possible}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                                                <div class="bg-green-600 h-2 rounded-full" style="width: ${challenge.completion_percentage}%"></div>
+                                            </div>
+                                            <span class="text-sm font-medium text-gray-900">${Math.round(challenge.completion_percentage)}%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        ${new Date(challenge.completed_at).toLocaleDateString()}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
     }
 }

@@ -142,6 +142,22 @@ async function initDB() {
       )
     `);
 
+    // Create past_challenges table to track completed challenges
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS past_challenges (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        challenge_name VARCHAR(255) NOT NULL,
+        duration INTEGER NOT NULL,
+        total_goals INTEGER NOT NULL,
+        points_earned INTEGER DEFAULT 0,
+        points_possible INTEGER DEFAULT 0,
+        completion_percentage DECIMAL(5,2) DEFAULT 0,
+        started_at TIMESTAMP NOT NULL,
+        completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Check if badges exist
     const badgeCheck = await pool.query('SELECT COUNT(*) FROM badges');
     if (badgeCheck.rows[0].count == 0) {
@@ -1091,6 +1107,45 @@ app.delete('/api/users/:userId', async (req, res) => {
 // Serve the main app
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Archive completed challenge
+app.post('/api/users/:userId/archive-challenge', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { challengeId, challengeName, duration, totalGoals, pointsEarned, pointsPossible, completionPercentage, startedAt } = req.body;
+    
+    // Archive the challenge
+    await pool.query(`
+      INSERT INTO past_challenges (user_id, challenge_name, duration, total_goals, points_earned, points_possible, completion_percentage, started_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [userId, challengeName, duration, totalGoals, pointsEarned, pointsPossible, completionPercentage, startedAt]);
+    
+    // Reset user's total points to 0 for fresh start
+    await pool.query('UPDATE users SET total_points = 0 WHERE id = $1', [userId]);
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Archive challenge error:', err);
+    res.status(500).json({ error: 'Failed to archive challenge' });
+  }
+});
+
+// Get user's past challenges
+app.get('/api/users/:userId/past-challenges', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await pool.query(`
+      SELECT * FROM past_challenges 
+      WHERE user_id = $1 
+      ORDER BY completed_at DESC
+    `, [userId]);
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get past challenges error:', err);
+    res.status(500).json({ error: 'Failed to get past challenges' });
+  }
 });
 
 // Initialize database and start server
