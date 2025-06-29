@@ -53,23 +53,33 @@ class AuthManager {
         }
     }
     
-    async createUser(name) {
+    async createUser(name, password = '') {
         try {
             const response = await fetch('/api/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
+                body: JSON.stringify({ name, password })
             });
-            return await response.json();
+            
+            const result = await response.json();
+            
+            if (!response.ok) {
+                return { error: result.error || 'Login failed' };
+            }
+            
+            return result;
         } catch (err) {
             console.error('Create user error:', err);
-            return null;
+            return { error: 'Connection error. Please try again.' };
         }
     }
     
     async handleLogin(name, isAutoLogin = false) {
-        const user = await this.createUser(name);
-        if (user) {
+        // Get password from input if not auto-login
+        const password = isAutoLogin ? '' : (document.getElementById('passwordInput')?.value || '');
+        
+        const user = await this.createUser(name, password);
+        if (user && !user.error) {
             this.app.currentUser = user;
             this.app.userStats.totalPoints = user.total_points;
             this.app.currentScreen = 'dashboard';
@@ -156,7 +166,41 @@ class AuthManager {
             setTimeout(() => {
                 this.app.renderer.renderNextBadgeProgress();
             }, 100);
+        } else {
+            // Handle login error
+            if (user && user.error) {
+                this.showLoginError(user.error);
+            } else {
+                this.showLoginError('Login failed. Please try again.');
+            }
         }
+    }
+    
+    showLoginError(message) {
+        // Remove any existing error message
+        const existingError = document.getElementById('loginError');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        // Create and show error message
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'loginError';
+        errorDiv.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-center';
+        errorDiv.textContent = message;
+        
+        // Insert before the login button
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn) {
+            loginBtn.parentNode.insertBefore(errorDiv, loginBtn);
+        }
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.remove();
+            }
+        }, 5000);
     }
     
     handleLogout() {

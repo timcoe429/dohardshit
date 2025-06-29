@@ -39,7 +39,15 @@ class Renderer {
                             type="text" 
                             id="nameInput" 
                             placeholder="YOUR NAME"
-                            class="w-full px-4 py-4 border-3 border-black text-lg font-bold placeholder-gray-500 focus:outline-none focus:border-red-600 mb-6 uppercase"
+                            class="w-full px-4 py-4 border-3 border-black text-lg font-bold placeholder-gray-500 focus:outline-none focus:border-red-600 mb-4 uppercase"
+                            style="border-width: 3px;"
+                        />
+                        
+                        <input 
+                            type="password" 
+                            id="passwordInput" 
+                            placeholder="PASSWORD"
+                            class="w-full px-4 py-4 border-3 border-black text-lg font-bold placeholder-gray-500 focus:outline-none focus:border-red-600 mb-6"
                             style="border-width: 3px;"
                         />
                         

@@ -32,6 +32,7 @@ async function initDB() {
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) DEFAULT '',
         total_points INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -158,6 +159,16 @@ async function initDB() {
     await pool.query('CREATE INDEX IF NOT EXISTS idx_reactions_message ON message_reactions(message_id)');
 
     console.log('Database initialized successfully');
+    
+    // Migration: Add password column if it doesn't exist
+    try {
+      await pool.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT ''
+      `);
+      console.log('Password column migration completed');
+    } catch (err) {
+      console.error('Migration error:', err);
+    }
   } catch (err) {
     console.error('Database initialization error:', err);
     throw err;
@@ -168,24 +179,49 @@ async function initDB() {
 // Get or create user
 app.post('/api/users', async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, password = '' } = req.body;
     
-    // Try to find existing user
-    let result = await pool.query('SELECT * FROM users WHERE name = $1', [name]);
+    // Normalize name to lowercase for case-insensitive lookup
+    const normalizedName = name.trim().toLowerCase();
+    
+    // Try to find existing user (case-insensitive)
+    let result = await pool.query('SELECT * FROM users WHERE LOWER(name) = $1', [normalizedName]);
     
     if (result.rows.length === 0) {
-      // Create new user
+      // Create new user with original casing for display
       result = await pool.query(
-        'INSERT INTO users (name) VALUES ($1) RETURNING *',
-        [name]
+        'INSERT INTO users (name, password) VALUES ($1, $2) RETURNING *',
+        [name.trim(), password]
       );
+    } else {
+      // Existing user - check password if provided
+      const existingUser = result.rows[0];
+      
+      // If user has a password set, verify it
+      if (existingUser.password && existingUser.password !== '') {
+        if (password !== existingUser.password) {
+          return res.status(401).json({ error: 'Invalid password' });
+        }
+      } else if (password) {
+        // User didn't have password before, but providing one now - set it
+        await pool.query(
+          'UPDATE users SET password = $1 WHERE id = $2',
+          [password, existingUser.id]
+        );
+        // Get updated user
+        result = await pool.query('SELECT * FROM users WHERE id = $1', [existingUser.id]);
+      }
     }
     
     const user = result.rows[0];
     res.json(user);
   } catch (err) {
     console.error('User creation error:', err);
-    res.status(500).json({ error: 'Failed to create/get user' });
+    if (err.code === '23505') { // Unique constraint violation
+      res.status(400).json({ error: 'Username already exists' });
+    } else {
+      res.status(500).json({ error: 'Failed to create/get user' });
+    }
   }
 });
 

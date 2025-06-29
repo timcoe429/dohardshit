@@ -6,6 +6,7 @@ class EventHandler {
     
     attachLoginEvents() {
         const nameInput = document.getElementById('nameInput');
+        const passwordInput = document.getElementById('passwordInput');
         const loginBtn = document.getElementById('loginBtn');
         
         const handleLogin = () => {
@@ -21,6 +22,14 @@ class EventHandler {
         
         if (nameInput) {
             nameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            });
+        }
+        
+        if (passwordInput) {
+            passwordInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     handleLogin();
                 }
