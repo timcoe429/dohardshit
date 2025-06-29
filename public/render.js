@@ -415,9 +415,9 @@ class Renderer {
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-600 mb-1">Current Badge</p>
-                                <p class="text-lg font-bold text-gray-400">None yet</p>
+                                <p class="text-lg font-bold text-purple-600">Lil Bitch</p>
                             </div>
-                            <span class="text-2xl opacity-30">🏆</span>
+                            <span class="text-2xl">🍆</span>
                         </div>
                     `;
                 }
