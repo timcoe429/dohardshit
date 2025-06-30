@@ -216,7 +216,7 @@ class Renderer {
                             <h2 class="text-2xl font-bold text-gray-800 mb-2">No Active Challenge</h2>
                             <p class="text-gray-600 mb-6">Ready to push your limits? Create a new challenge and start crushing your goals.</p>
                             <button
-                                onclick="window.app.showCreateChallengeModal()"
+                                onclick="window.app.showTemplateSelector()"
                                 class="bg-black hover:bg-red-600 text-white px-8 py-3 rounded-lg font-bold transition-all duration-200 transform hover:scale-105"
                             >
                                 CREATE NEW CHALLENGE
@@ -230,7 +230,7 @@ class Renderer {
                         <!-- Create New Challenge Button -->
                         <div class="mt-6">
                             <button
-                                onclick="window.app.showCreateChallengeModal()"
+                                onclick="window.app.showTemplateSelector()"
                                 class="w-full bg-black hover:bg-red-600 text-white py-3 rounded-lg font-bold transition-all duration-200 transform hover:scale-105"
                             >
                                 CREATE NEW CHALLENGE
