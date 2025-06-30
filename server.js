@@ -48,6 +48,7 @@ async function initDB() {
         created_by INTEGER REFERENCES users(id),
         invite_code VARCHAR(20) UNIQUE,
         is_active BOOLEAN DEFAULT true,
+        status VARCHAR(20) DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -185,6 +186,16 @@ async function initDB() {
     } catch (err) {
       console.error('Migration error:', err);
     }
+    
+    // Migration: Add status column to challenges if it doesn't exist
+    try {
+      await pool.query(`
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'
+      `);
+      console.log('Challenges status column migration completed');
+    } catch (err) {
+      console.error('Challenges migration error:', err);
+    }
   } catch (err) {
     console.error('Database initialization error:', err);
     throw err;
@@ -246,8 +257,8 @@ app.get('/api/users/:userId/challenges', async (req, res) => {
   try {
     const { userId } = req.params;
     const result = await pool.query(
-      'SELECT * FROM challenges WHERE user_id = $1 ORDER BY created_at DESC',
-      [userId]
+      'SELECT * FROM challenges WHERE user_id = $1 AND status = $2 ORDER BY created_at DESC',
+      [userId, 'active']
     );
     res.json(result.rows);
   } catch (err) {
@@ -1115,11 +1126,25 @@ app.post('/api/users/:userId/archive-challenge', async (req, res) => {
     const { userId } = req.params;
     const { challengeId, challengeName, duration, totalGoals, pointsEarned, pointsPossible, completionPercentage, startedAt } = req.body;
     
+    // Check if this challenge is already archived
+    const existingArchive = await pool.query(
+      'SELECT id FROM past_challenges WHERE user_id = $1 AND challenge_name = $2 AND started_at = $3',
+      [userId, challengeName, startedAt]
+    );
+    
+    if (existingArchive.rows.length > 0) {
+      // Already archived, don't create duplicate
+      return res.json({ success: true, message: 'Challenge already archived' });
+    }
+    
     // Archive the challenge
     await pool.query(`
       INSERT INTO past_challenges (user_id, challenge_name, duration, total_goals, points_earned, points_possible, completion_percentage, started_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `, [userId, challengeName, duration, totalGoals, pointsEarned, pointsPossible, completionPercentage, startedAt]);
+    
+    // Mark the challenge as completed in the challenges table
+    await pool.query('UPDATE challenges SET status = $1 WHERE id = $2', ['completed', challengeId]);
     
     // Reset user's total points to 0 for fresh start
     await pool.query('UPDATE users SET total_points = 0 WHERE id = $1', [userId]);
