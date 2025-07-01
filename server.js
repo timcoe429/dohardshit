@@ -159,6 +159,36 @@ async function initDB() {
       )
     `);
 
+    // Create ghost_challengers table for personal AI competitors
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ghost_challengers (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        challenge_id INTEGER REFERENCES challenges(id),
+        ghost_name VARCHAR(100) NOT NULL,
+        difficulty_level VARCHAR(20) DEFAULT 'moderate',
+        points_per_day_min INTEGER DEFAULT 3,
+        points_per_day_max INTEGER DEFAULT 7,
+        current_points INTEGER DEFAULT 0,
+        current_day INTEGER DEFAULT 1,
+        is_active BOOLEAN DEFAULT true,
+        ghost_type VARCHAR(20) DEFAULT 'ai',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create ghost_daily_progress table to track ghost performance
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS ghost_daily_progress (
+        id SERIAL PRIMARY KEY,
+        ghost_id INTEGER REFERENCES ghost_challengers(id),
+        date DATE NOT NULL,
+        points_earned INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(ghost_id, date)
+      )
+    `);
+
     // Check if badges exist
     const badgeCheck = await pool.query('SELECT COUNT(*) FROM badges');
     if (badgeCheck.rows[0].count == 0) {
@@ -1170,6 +1200,222 @@ app.get('/api/users/:userId/past-challenges', async (req, res) => {
   } catch (err) {
     console.error('Get past challenges error:', err);
     res.status(500).json({ error: 'Failed to get past challenges' });
+  }
+});
+
+// === GHOST CHALLENGERS API ENDPOINTS ===
+
+// Get user's ghost challengers for current challenge
+app.get('/api/users/:userId/challenges/:challengeId/ghosts', async (req, res) => {
+  try {
+    const { userId, challengeId } = req.params;
+    
+    const result = await pool.query(`
+      SELECT gc.*, gdp.date, gdp.points_earned as daily_points
+      FROM ghost_challengers gc
+      LEFT JOIN ghost_daily_progress gdp ON gc.id = gdp.ghost_id AND gdp.date = CURRENT_DATE
+      WHERE gc.user_id = $1 AND gc.challenge_id = $2 AND gc.is_active = true
+      ORDER BY gc.current_points DESC
+    `, [userId, challengeId]);
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get ghost challengers error:', err);
+    res.status(500).json({ error: 'Failed to get ghost challengers' });
+  }
+});
+
+// Add new ghost challenger
+app.post('/api/users/:userId/challenges/:challengeId/ghosts', async (req, res) => {
+  try {
+    const { userId, challengeId } = req.params;
+    const { ghostName, difficultyLevel, ghostType = 'ai' } = req.body;
+    
+    // Set point ranges based on difficulty
+    const difficultySettings = {
+      casual: { min: 2, max: 4 },
+      moderate: { min: 4, max: 7 },
+      aggressive: { min: 7, max: 10 },
+      psycho: { min: 10, max: 12 }
+    };
+    
+    const settings = difficultySettings[difficultyLevel] || difficultySettings.moderate;
+    
+    // Get current challenge day to start ghost from same position
+    const challengeResult = await pool.query('SELECT created_at, duration FROM challenges WHERE id = $1', [challengeId]);
+    if (challengeResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+    
+    const challenge = challengeResult.rows[0];
+    const startDate = new Date(challenge.created_at);
+    const today = new Date();
+    const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const currentDay = Math.min(daysDiff, challenge.duration);
+    
+    // Calculate points the ghost should have by now
+    let totalPoints = 0;
+    for (let day = 1; day < currentDay; day++) {
+      const dailyPoints = Math.floor(Math.random() * (settings.max - settings.min + 1)) + settings.min;
+      totalPoints += dailyPoints;
+    }
+    
+    const result = await pool.query(`
+      INSERT INTO ghost_challengers (
+        user_id, challenge_id, ghost_name, difficulty_level, 
+        points_per_day_min, points_per_day_max, current_points, current_day, ghost_type
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+    `, [userId, challengeId, ghostName, difficultyLevel, settings.min, settings.max, totalPoints, currentDay, ghostType]);
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Add ghost challenger error:', err);
+    res.status(500).json({ error: 'Failed to add ghost challenger' });
+  }
+});
+
+// Remove ghost challenger
+app.delete('/api/users/:userId/ghosts/:ghostId', async (req, res) => {
+  try {
+    const { userId, ghostId } = req.params;
+    
+    await pool.query(
+      'UPDATE ghost_challengers SET is_active = false WHERE id = $1 AND user_id = $2',
+      [ghostId, userId]
+    );
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Remove ghost challenger error:', err);
+    res.status(500).json({ error: 'Failed to remove ghost challenger' });
+  }
+});
+
+// Update ghost challenger daily progress (called automatically)
+app.post('/api/ghosts/:ghostId/daily-progress', async (req, res) => {
+  try {
+    const { ghostId } = req.params;
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Get ghost details
+    const ghostResult = await pool.query('SELECT * FROM ghost_challengers WHERE id = $1', [ghostId]);
+    if (ghostResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Ghost not found' });
+    }
+    
+    const ghost = ghostResult.rows[0];
+    
+    // Check if already has progress for today
+    const existingProgress = await pool.query(
+      'SELECT id FROM ghost_daily_progress WHERE ghost_id = $1 AND date = $2',
+      [ghostId, today]
+    );
+    
+    if (existingProgress.rows.length > 0) {
+      return res.json({ message: 'Progress already recorded for today' });
+    }
+    
+    // Generate random points for today
+    const pointsEarned = Math.floor(
+      Math.random() * (ghost.points_per_day_max - ghost.points_per_day_min + 1)
+    ) + ghost.points_per_day_min;
+    
+    // Record daily progress
+    await pool.query(
+      'INSERT INTO ghost_daily_progress (ghost_id, date, points_earned) VALUES ($1, $2, $3)',
+      [ghostId, today, pointsEarned]
+    );
+    
+    // Update ghost total points
+    await pool.query(
+      'UPDATE ghost_challengers SET current_points = current_points + $1, current_day = current_day + 1 WHERE id = $2',
+      [pointsEarned, ghostId]
+    );
+    
+    res.json({ success: true, pointsEarned });
+  } catch (err) {
+    console.error('Update ghost progress error:', err);
+    res.status(500).json({ error: 'Failed to update ghost progress' });
+  }
+});
+
+// Update all active ghosts for a user (catch-up mechanism)
+app.post('/api/users/:userId/ghosts/update-all', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Get all active ghosts for user
+    const ghostsResult = await pool.query(
+      'SELECT gc.* FROM ghost_challengers gc JOIN challenges c ON gc.challenge_id = c.id WHERE gc.user_id = $1 AND gc.is_active = true AND c.status = $2',
+      [userId, 'active']
+    );
+    
+    const updatedGhosts = [];
+    
+    for (const ghost of ghostsResult.rows) {
+      // Get challenge details to determine valid date range
+      const challengeResult = await pool.query('SELECT created_at, duration FROM challenges WHERE id = $1', [ghost.challenge_id]);
+      const challenge = challengeResult.rows[0];
+      
+      const startDate = new Date(challenge.created_at);
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + challenge.duration - 1);
+      const today = new Date();
+      
+      // Get all dates the ghost should have progress for
+      const currentDate = new Date(Math.max(startDate, new Date(ghost.created_at)));
+      
+      let totalPointsAdded = 0;
+      let daysUpdated = 0;
+      
+      while (currentDate <= Math.min(today, endDate)) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        
+        // Check if progress exists for this date
+        const existingProgress = await pool.query(
+          'SELECT id FROM ghost_daily_progress WHERE ghost_id = $1 AND date = $2',
+          [ghost.id, dateStr]
+        );
+        
+        if (existingProgress.rows.length === 0) {
+          // Generate points for this day
+          const pointsEarned = Math.floor(
+            Math.random() * (ghost.points_per_day_max - ghost.points_per_day_min + 1)
+          ) + ghost.points_per_day_min;
+          
+          // Record daily progress
+          await pool.query(
+            'INSERT INTO ghost_daily_progress (ghost_id, date, points_earned) VALUES ($1, $2, $3)',
+            [ghost.id, dateStr, pointsEarned]
+          );
+          
+          totalPointsAdded += pointsEarned;
+          daysUpdated++;
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      // Update ghost total points and current day
+      if (totalPointsAdded > 0) {
+        await pool.query(
+          'UPDATE ghost_challengers SET current_points = current_points + $1 WHERE id = $2',
+          [totalPointsAdded, ghost.id]
+        );
+        
+        updatedGhosts.push({
+          id: ghost.id,
+          name: ghost.ghost_name,
+          pointsAdded: totalPointsAdded,
+          daysUpdated
+        });
+      }
+    }
+    
+    res.json({ success: true, updatedGhosts });
+  } catch (err) {
+    console.error('Update all ghosts error:', err);
+    res.status(500).json({ error: 'Failed to update ghosts' });
   }
 });
 

@@ -40,17 +40,88 @@ class EventHandler {
     attachDashboardEvents() {
         const logoutBtn = document.getElementById('logoutBtn');
         const goalItems = document.querySelectorAll('.goal-item');
-        // REMOVED: const newChallengeBtn = document.getElementById('newChallengeBtn');
         const leaderboardBtn = document.getElementById('leaderboardBtn');
         const userMgmtBtn = document.getElementById('userMgmtBtn');
         const statsBtn = document.getElementById('statsBtn');
         
+        // Slide-out Dashboard Events
+        const slideOutMenuBtn = document.getElementById('slideOutMenuBtn');
+        const closeDashboardBtn = document.getElementById('closeDashboardBtn');
+        const dashboardOverlay = document.getElementById('dashboardOverlay');
+        const slideOutDashboard = document.getElementById('slideOutDashboard');
+        
+        if (slideOutMenuBtn) {
+            slideOutMenuBtn.addEventListener('click', () => {
+                this.openSlideDashboard();
+            });
+        }
+        
+        if (closeDashboardBtn) {
+            closeDashboardBtn.addEventListener('click', () => {
+                this.closeSlideDashboard();
+            });
+        }
+        
+        if (dashboardOverlay) {
+            dashboardOverlay.addEventListener('click', () => {
+                this.closeSlideDashboard();
+            });
+        }
+        
+        // Dashboard Tab Events
+        const dashboardTabs = document.querySelectorAll('.dashboard-tab');
+        dashboardTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                this.switchDashboardTab(tab.getAttribute('data-tab'));
+            });
+        });
+        
+        // Dashboard Action Events
+        const addGhostBtn = document.getElementById('addGhostBtn');
+        const addPrevSelfBtn = document.getElementById('addPrevSelfBtn');
+        const viewStatsBtn = document.getElementById('viewStatsBtn');
+        const viewLeaderboardBtn = document.getElementById('viewLeaderboardBtn');
+        const manageUsersBtn = document.getElementById('manageUsersBtn');
+        
+        if (addGhostBtn) {
+            addGhostBtn.addEventListener('click', () => {
+                this.app.showAddGhostModal();
+            });
+        }
+        
+        if (addPrevSelfBtn) {
+            addPrevSelfBtn.addEventListener('click', () => {
+                this.app.addPreviousSelfGhost();
+            });
+        }
+        
+        if (viewStatsBtn) {
+            viewStatsBtn.addEventListener('click', () => {
+                this.app.showStatsModal();
+                this.closeSlideDashboard();
+            });
+        }
+        
+        if (viewLeaderboardBtn) {
+            viewLeaderboardBtn.addEventListener('click', () => {
+                this.app.showLeaderboardModal();
+                this.closeSlideDashboard();
+            });
+        }
+        
+        if (manageUsersBtn) {
+            manageUsersBtn.addEventListener('click', () => {
+                this.app.showUserManagement();
+                this.closeSlideDashboard();
+            });
+        }
+
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
                 this.app.authManager.handleLogout();
             });
         }
-        
+
         // Fix: Make sure each goal item has its click handler
         goalItems.forEach(item => {
             const goalIndex = parseInt(item.getAttribute('data-goal-index'));
@@ -60,25 +131,73 @@ class EventHandler {
                 this.app.progressManager.toggleGoal(goalIndex);
             });
         });
-        
-        // REMOVED: Event listener for newChallengeBtn since we're using onclick
-        
+
         if (leaderboardBtn) {
             leaderboardBtn.addEventListener('click', () => {
                 this.app.showLeaderboardModal();
             });
         }
-        
+
         if (statsBtn) {
             statsBtn.addEventListener('click', () => {
                 this.app.showStatsModal();
             });
         }
-        
+
         if (userMgmtBtn) {
             userMgmtBtn.addEventListener('click', () => {
                 this.app.showUserManagement();
             });
+        }
+    }
+    
+    openSlideDashboard() {
+        const slideOutDashboard = document.getElementById('slideOutDashboard');
+        const dashboardOverlay = document.getElementById('dashboardOverlay');
+        
+        if (slideOutDashboard && dashboardOverlay) {
+            dashboardOverlay.classList.remove('hidden');
+            slideOutDashboard.style.transform = 'translateX(0)';
+            
+            // Load ghost challengers for current challenge
+            if (this.app.activeChallenge) {
+                this.app.loadGhostChallengers();
+            }
+        }
+    }
+    
+    closeSlideDashboard() {
+        const slideOutDashboard = document.getElementById('slideOutDashboard');
+        const dashboardOverlay = document.getElementById('dashboardOverlay');
+        
+        if (slideOutDashboard && dashboardOverlay) {
+            slideOutDashboard.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                dashboardOverlay.classList.add('hidden');
+            }, 300);
+        }
+    }
+    
+    switchDashboardTab(tabName) {
+        // Remove active class from all tabs
+        document.querySelectorAll('.dashboard-tab').forEach(tab => {
+            tab.classList.remove('active', 'text-black', 'border-black');
+            tab.classList.add('text-gray-500');
+        });
+        
+        // Hide all tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Activate selected tab
+        const selectedTab = document.querySelector(`[data-tab="${tabName}"]`);
+        const selectedContent = document.getElementById(`${tabName}Tab`);
+        
+        if (selectedTab && selectedContent) {
+            selectedTab.classList.add('active', 'text-black', 'border-black');
+            selectedTab.classList.remove('text-gray-500');
+            selectedContent.classList.remove('hidden');
         }
     }
     

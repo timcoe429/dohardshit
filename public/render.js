@@ -106,36 +106,14 @@ class Renderer {
                                 <p class="text-2xl font-bold text-black">${this.app.currentUser.total_points} points</p>
                                 <p class="text-xs text-gray-500">Total earned</p>
                             </div>
-                            <div class="flex space-x-2">
-                                <button
-                                    id="statsBtn"
-                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors stats-btn"
-                                    title="View Stats"
-                                >
-                                    📊
-                                </button>
-                                <button
-                                    id="leaderboardBtn"
-                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    title="View Leaderboard"
-                                >
-                                    🏆
-                                </button>
-                                <button
-                                    id="userMgmtBtn"
-                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    title="Manage Users"
-                                >
-                                    👥
-                                </button>
-                                <button
-                                    id="logoutBtn"
-                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    title="Logout"
-                                >
-                                    🚪
-                                </button>
-                            </div>
+                            <!-- Slide-out Menu Trigger -->
+                            <button
+                                id="slideOutMenuBtn"
+                                class="p-3 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-200 hover:border-black"
+                                title="Dashboard Menu"
+                            >
+                                <span class="text-lg">⚔️</span>
+                            </button>
                         </div>
                     </div>
                 </header>
@@ -239,6 +217,30 @@ class Renderer {
                     ` : ''}
                 </main>
             </div>
+            
+            <!-- Slide-out Dashboard -->
+            <div id="slideOutDashboard" class="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 border-l-4 border-black">
+                <div class="h-full flex flex-col">
+                    <!-- Dashboard Header -->
+                    <div class="p-6 border-b-2 border-gray-200 bg-gradient-to-r from-black to-red-600">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-xl font-bold text-white">⚔️ Battle Dashboard</h2>
+                                <p class="text-sm text-gray-200">Manage your competition</p>
+                            </div>
+                            <button id="closeDashboardBtn" class="text-white hover:text-gray-300 text-2xl">✕</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Dashboard Content -->
+                    <div class="flex-1 overflow-y-auto">
+                        ${this.renderDashboardTabs()}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dashboard Overlay -->
+            <div id="dashboardOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
         `;
     }
 
@@ -579,6 +581,151 @@ class Renderer {
                             `).join('')}
                         </tbody>
                     </table>
+                </div>
+            </div>
+        `;
+    }
+
+    renderDashboardTabs() {
+        return `
+            <div class="p-4">
+                <!-- Tab Navigation -->
+                <div class="flex border-b-2 border-gray-200 mb-4">
+                    <button class="dashboard-tab active px-4 py-2 font-bold text-black border-b-2 border-black" data-tab="ghosts">
+                        👻 Ghost Challengers
+                    </button>
+                    <button class="dashboard-tab px-4 py-2 font-bold text-gray-500 hover:text-black" data-tab="stats">
+                        📊 Personal Stats
+                    </button>
+                    <button class="dashboard-tab px-4 py-2 font-bold text-gray-500 hover:text-black" data-tab="settings">
+                        ⚙️ Settings
+                    </button>
+                </div>
+                
+                <!-- Tab Content -->
+                <div id="ghostsTab" class="tab-content">
+                    ${this.renderGhostChallengersTab()}
+                </div>
+                
+                <div id="statsTab" class="tab-content hidden">
+                    ${this.renderPersonalStatsTab()}
+                </div>
+                
+                <div id="settingsTab" class="tab-content hidden">
+                    ${this.renderSettingsTab()}
+                </div>
+            </div>
+        `;
+    }
+    
+    renderGhostChallengersTab() {
+        if (!this.app.activeChallenge) {
+            return `
+                <div class="text-center py-8">
+                    <div class="text-6xl mb-4">🎯</div>
+                    <h3 class="text-lg font-bold text-gray-700 mb-2">No Active Challenge</h3>
+                    <p class="text-gray-500">Start a challenge to add ghost competitors!</p>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="space-y-4">
+                <!-- Add Ghost Button -->
+                <button 
+                    id="addGhostBtn" 
+                    class="w-full bg-black hover:bg-red-600 text-white py-3 rounded-lg font-bold transition-all transform hover:scale-105"
+                >
+                    ➕ Add Ghost Challenger
+                </button>
+                
+                <!-- Previous Self Option -->
+                <button 
+                    id="addPrevSelfBtn" 
+                    class="w-full bg-gray-700 hover:bg-gray-900 text-white py-3 rounded-lg font-bold transition-all"
+                >
+                    🔄 Challenge Your Past Self
+                </button>
+                
+                <!-- Current Ghosts -->
+                <div id="currentGhosts">
+                    <h4 class="font-bold text-gray-700 mb-2">Active Ghosts:</h4>
+                    <div id="ghostsList" class="space-y-2">
+                        <!-- Ghost challengers will be loaded here -->
+                        <p class="text-gray-500 text-sm">No ghost challengers yet. Add one to start competing!</p>
+                    </div>
+                </div>
+                
+                <!-- Ghost Leaderboard -->
+                <div class="mt-6">
+                    <h4 class="font-bold text-gray-700 mb-2">Competition Board:</h4>
+                    <div id="ghostLeaderboard" class="space-y-2">
+                        <!-- Combined leaderboard will show here -->
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    renderPersonalStatsTab() {
+        return `
+            <div class="space-y-4">
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <p class="text-2xl font-bold text-black">${this.app.currentUser.total_points}</p>
+                        <p class="text-xs text-gray-500">Total Points</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <p class="text-2xl font-bold text-green-600">${this.app.pastChallenges?.length || 0}</p>
+                        <p class="text-xs text-gray-500">Completed</p>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="space-y-2">
+                    <button 
+                        id="viewStatsBtn" 
+                        class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition-colors"
+                    >
+                        📊 View Detailed Stats
+                    </button>
+                    <button 
+                        id="viewLeaderboardBtn" 
+                        class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-medium transition-colors"
+                    >
+                        🏆 Global Leaderboard
+                    </button>
+                    <button 
+                        id="manageUsersBtn" 
+                        class="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg font-medium transition-colors"
+                    >
+                        👥 Manage Users
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    renderSettingsTab() {
+        return `
+            <div class="space-y-4">
+                <div class="text-center">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4">Account Settings</h3>
+                </div>
+                
+                <button 
+                    id="logoutBtn" 
+                    class="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg font-bold transition-colors"
+                >
+                    🚪 Logout
+                </button>
+                
+                <div class="mt-8 pt-4 border-t border-gray-200">
+                    <p class="text-xs text-gray-500 text-center">
+                        DoHardShit v2.0<br/>
+                        Built for warriors who refuse to quit
+                    </p>
                 </div>
             </div>
         `;

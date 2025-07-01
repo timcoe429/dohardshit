@@ -166,6 +166,15 @@ class ProgressManager {
             
             // Check if challenge is now complete
             await this.app.challengeManager.checkAndHandleCompletion();
+            
+            // Update display and leaderboard
+            this.app.renderer.renderDashboard();
+            await this.app.leaderboardManager.refreshLeaderboard();
+            
+            // Update ghost leaderboard if slide-out is open
+            if (this.app.currentGhosts) {
+                this.app.updateGhostLeaderboard();
+            }
         } catch (err) {
             console.error('Failed to update progress:', err);
             // Revert local state on error

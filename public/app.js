@@ -21,6 +21,7 @@ class ChallengeApp {
        this.showLeaderboard = false;
        this.showUserMgmt = false;
        this.pastChallenges = [];
+       this.currentGhosts = [];
        
        // Initialize managers
        this.authManager = new AuthManager(this);
@@ -38,15 +39,28 @@ class ChallengeApp {
        window.app = this;
    }
 
-   async init() {
-       // Check for saved login first
-       const hasAutoLoggedIn = await this.authManager.checkSavedLogin();
-       
-       // Only render login screen if no saved login
-       if (!hasAutoLoggedIn) {
-           this.render();
-       }
-   }
+       async init() {
+        // Check for saved login first
+        const hasAutoLoggedIn = await this.authManager.checkSavedLogin();
+        
+        // Only render login screen if no saved login
+        if (!hasAutoLoggedIn) {
+            this.render();
+        } else {
+            // Load initial data
+            await this.loadUserData();
+            await this.challengeManager.loadActiveChallenge();
+            await this.loadPastChallenges();
+            
+            // Update ghost challengers (catch-up mechanism)
+            if (this.currentUser) {
+                await this.updateAllGhosts();
+            }
+
+            this.renderer.renderDashboard();
+            this.eventHandler.attachDashboardEvents();
+        }
+    }
    
    render() {
        this.renderer.render();
@@ -306,6 +320,329 @@ class ChallengeApp {
            modal.addEventListener('click', (e) => {
                if (e.target === modal) this.hideUserManagement();
            });
+       }
+   }
+
+   // === GHOST CHALLENGER METHODS ===
+   
+   async loadGhostChallengers() {
+       if (!this.activeChallenge) return;
+       
+       try {
+           const response = await fetch(`/api/users/${this.currentUser.id}/challenges/${this.activeChallenge.id}/ghosts`);
+           const ghosts = await response.json();
+           
+           this.currentGhosts = ghosts;
+           this.updateGhostsList();
+           this.updateGhostLeaderboard();
+       } catch (error) {
+           console.error('Failed to load ghost challengers:', error);
+       }
+   }
+   
+   updateGhostsList() {
+       const ghostsList = document.getElementById('ghostsList');
+       if (!ghostsList) return;
+       
+       if (!this.currentGhosts || this.currentGhosts.length === 0) {
+           ghostsList.innerHTML = '<p class="text-gray-500 text-sm">No ghost challengers yet. Add one to start competing!</p>';
+           return;
+       }
+       
+       ghostsList.innerHTML = this.currentGhosts.map(ghost => `
+           <div class="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
+               <div class="flex items-center space-x-3">
+                   <div class="text-lg">👻</div>
+                   <div>
+                       <p class="font-medium text-black">${ghost.ghost_name}</p>
+                       <p class="text-xs text-gray-500">
+                           ${ghost.difficulty_level.charAt(0).toUpperCase() + ghost.difficulty_level.slice(1)} • 
+                           ${ghost.current_points} points • 
+                           Day ${ghost.current_day}
+                       </p>
+                   </div>
+               </div>
+               <button 
+                   onclick="app.removeGhost(${ghost.id})" 
+                   class="text-red-500 hover:text-red-700 text-sm"
+                   title="Remove Ghost"
+               >
+                   ✕
+               </button>
+           </div>
+       `).join('');
+   }
+   
+   updateGhostLeaderboard() {
+       const ghostLeaderboard = document.getElementById('ghostLeaderboard');
+       if (!ghostLeaderboard) return;
+       
+       // Combine real user and ghosts for this user's personal leaderboard
+       const combinedUsers = [];
+       
+       // Add current user
+       if (this.activeChallenge) {
+           combinedUsers.push({
+               name: this.currentUser.username,
+               points: this.currentUser.current_points || 0,
+               type: 'user',
+               badge_title: this.currentUser.badge_title || 'Lil Bitch'
+           });
+       }
+       
+       // Add ghosts
+       if (this.currentGhosts) {
+           this.currentGhosts.forEach(ghost => {
+               combinedUsers.push({
+                   name: ghost.ghost_name,
+                   points: ghost.current_points,
+                   type: 'ghost',
+                   difficulty: ghost.difficulty_level,
+                   badge_title: this.getBadgeForPoints(ghost.current_points)
+               });
+           });
+       }
+       
+       // Sort by points
+       combinedUsers.sort((a, b) => b.points - a.points);
+       
+       if (combinedUsers.length === 0) {
+           ghostLeaderboard.innerHTML = '<p class="text-gray-500 text-sm">Start a challenge to see your competition!</p>';
+           return;
+       }
+       
+       ghostLeaderboard.innerHTML = combinedUsers.map((user, index) => `
+           <div class="flex items-center justify-between p-2 bg-white rounded border ${user.type === 'user' ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}">
+               <div class="flex items-center space-x-3">
+                   <span class="text-sm font-bold ${index === 0 ? 'text-yellow-600' : 'text-gray-500'}">
+                       #${index + 1}
+                   </span>
+                   <span class="text-lg">
+                       ${user.type === 'user' ? '👤' : '👻'}
+                   </span>
+                   <div>
+                       <p class="text-sm font-medium">${user.name}</p>
+                       <p class="text-xs text-gray-500">${user.badge_title}</p>
+                   </div>
+               </div>
+               <span class="text-sm font-bold">${user.points}</span>
+           </div>
+       `).join('');
+   }
+   
+   getBadgeForPoints(points) {
+       if (points >= 100) return '👑 LEGEND';
+       if (points >= 30) return '💀 SAVAGE';
+       if (points >= 7) return '⚡ WARRIOR';
+       if (points >= 3) return '🔥 BEAST MODE';
+       return '🍆 Lil Bitch';
+   }
+   
+   showAddGhostModal() {
+       const modalHTML = `
+           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="addGhostModal">
+               <div class="bg-white rounded-lg p-6 w-96 max-w-90vw">
+                   <div class="flex items-center justify-between mb-4">
+                       <h2 class="text-xl font-bold">Add Ghost Challenger</h2>
+                       <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-black text-2xl">✕</button>
+                   </div>
+                   
+                   <form id="addGhostForm" class="space-y-4">
+                       <div>
+                           <label class="block text-sm font-medium text-gray-700 mb-1">Ghost Name</label>
+                           <input 
+                               type="text" 
+                               id="ghostName" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black" 
+                               placeholder="Enter challenger name..."
+                               required
+                           />
+                       </div>
+                       
+                       <div>
+                           <label class="block text-sm font-medium text-gray-700 mb-1">Difficulty Level</label>
+                           <select 
+                               id="difficultyLevel" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                           >
+                               <option value="casual">🟢 Casual (2-4 points/day)</option>
+                               <option value="moderate" selected>🟡 Moderate (4-7 points/day)</option>
+                               <option value="aggressive">🟠 Aggressive (7-10 points/day)</option>
+                               <option value="psycho">🔴 Psycho (10-12 points/day)</option>
+                           </select>
+                       </div>
+                       
+                       <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                           <p class="text-sm text-yellow-800">
+                               <strong>Note:</strong> Ghost will start from your current challenge day with accumulated points based on their difficulty level.
+                           </p>
+                       </div>
+                       
+                       <div class="flex space-x-3">
+                           <button 
+                               type="button" 
+                               onclick="this.closest('.fixed').remove()" 
+                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                           >
+                               Cancel
+                           </button>
+                           <button 
+                               type="submit" 
+                               class="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-red-600 font-bold"
+                           >
+                               Add Ghost
+                           </button>
+                       </div>
+                   </form>
+               </div>
+           </div>
+       `;
+       
+       document.body.insertAdjacentHTML('beforeend', modalHTML);
+       
+       // Handle form submission
+       document.getElementById('addGhostForm').addEventListener('submit', async (e) => {
+           e.preventDefault();
+           
+           const ghostName = document.getElementById('ghostName').value;
+           const difficultyLevel = document.getElementById('difficultyLevel').value;
+           
+           await this.addGhostChallenger(ghostName, difficultyLevel);
+           document.getElementById('addGhostModal').remove();
+       });
+   }
+   
+   async addGhostChallenger(ghostName, difficultyLevel, ghostType = 'ai') {
+       if (!this.activeChallenge) return;
+       
+       try {
+           const response = await fetch(`/api/users/${this.currentUser.id}/challenges/${this.activeChallenge.id}/ghosts`, {
+               method: 'POST',
+               headers: {
+                   'Content-Type': 'application/json'
+               },
+               body: JSON.stringify({
+                   ghostName,
+                   difficultyLevel,
+                   ghostType
+               })
+           });
+           
+           if (response.ok) {
+               await this.loadGhostChallengers();
+               this.showNotification(`Ghost challenger "${ghostName}" added!`, 'success');
+           } else {
+               throw new Error('Failed to add ghost challenger');
+           }
+       } catch (error) {
+           console.error('Failed to add ghost challenger:', error);
+           this.showNotification('Failed to add ghost challenger', 'error');
+       }
+   }
+   
+   async addPreviousSelfGhost() {
+       if (!this.activeChallenge) return;
+       
+       try {
+           // Get user's past challenges for the same challenge type
+           const response = await fetch(`/api/users/${this.currentUser.id}/past-challenges`);
+           const pastChallenges = await response.json();
+           
+           // Filter for same challenge name/type
+           const matchingChallenges = pastChallenges.filter(pc => 
+               pc.challenge_name === this.activeChallenge.name
+           );
+           
+           if (matchingChallenges.length === 0) {
+               this.showNotification('No previous attempts found for this challenge type', 'info');
+               return;
+           }
+           
+           // Use the most recent completion
+           const lastAttempt = matchingChallenges[0];
+           const avgPointsPerDay = Math.round(lastAttempt.points_earned / lastAttempt.duration);
+           
+           // Determine difficulty based on past performance
+           let difficulty = 'moderate';
+           if (avgPointsPerDay <= 3) difficulty = 'casual';
+           else if (avgPointsPerDay <= 6) difficulty = 'moderate';
+           else if (avgPointsPerDay <= 9) difficulty = 'aggressive';
+           else difficulty = 'psycho';
+           
+           const ghostName = `Past ${this.currentUser.username}`;
+           
+           await this.addGhostChallenger(ghostName, difficulty, 'previous_self');
+           
+       } catch (error) {
+           console.error('Failed to add previous self ghost:', error);
+           this.showNotification('Failed to add previous self challenger', 'error');
+       }
+   }
+   
+   async removeGhost(ghostId) {
+       try {
+           const response = await fetch(`/api/users/${this.currentUser.id}/ghosts/${ghostId}`, {
+               method: 'DELETE'
+           });
+           
+           if (response.ok) {
+               await this.loadGhostChallengers();
+               this.showNotification('Ghost challenger removed', 'success');
+           } else {
+               throw new Error('Failed to remove ghost');
+           }
+       } catch (error) {
+           console.error('Failed to remove ghost:', error);
+           this.showNotification('Failed to remove ghost challenger', 'error');
+       }
+   }
+   
+   showNotification(message, type = 'info') {
+       const colors = {
+           success: 'bg-green-500',
+           error: 'bg-red-500',
+           info: 'bg-blue-500'
+       };
+       
+       const notification = document.createElement('div');
+       notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg z-50 transform transition-all duration-300 translate-x-full`;
+       notification.textContent = message;
+       
+       document.body.appendChild(notification);
+       
+       // Slide in
+       setTimeout(() => {
+           notification.style.transform = 'translateX(0)';
+       }, 100);
+       
+       // Slide out and remove
+       setTimeout(() => {
+           notification.style.transform = 'translateX(100%)';
+           setTimeout(() => {
+               if (notification.parentNode) {
+                   notification.parentNode.removeChild(notification);
+               }
+           }, 300);
+       }, 3000);
+   }
+
+   async updateAllGhosts() {
+       try {
+           const response = await fetch(`/api/users/${this.currentUser.id}/ghosts/update-all`, {
+               method: 'POST'
+           });
+           
+           if (response.ok) {
+               const result = await response.json();
+               console.log('Ghost updates:', result.updatedGhosts);
+               
+               // Reload ghost data if any were updated
+               if (result.updatedGhosts.length > 0 && this.activeChallenge) {
+                   await this.loadGhostChallengers();
+               }
+           }
+       } catch (error) {
+           console.error('Failed to update ghosts:', error);
        }
    }
 }
