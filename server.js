@@ -1255,7 +1255,7 @@ app.post('/api/users/:userId/challenges/:challengeId/ghosts', async (req, res) =
         maxPercent: 0.95 
       },
       psycho: { 
-        minPercent: 0.95, 
+        minPercent: 1.0, 
         maxPercent: 1.0 
       }
     };

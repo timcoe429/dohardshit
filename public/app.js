@@ -380,11 +380,12 @@ class ChallengeApp {
        // Combine real user and ghosts for this user's personal leaderboard
        const combinedUsers = [];
        
-       // Add current user
+       // Add current user with their actual current challenge points
        if (this.activeChallenge && this.currentUser) {
+           const userCurrentPoints = this.activeChallenge.current_points || 0;
            combinedUsers.push({
                name: this.currentUser.username || this.currentUser.name || 'You',
-               points: this.currentUser.current_points || 0,
+               points: userCurrentPoints,
                type: 'user',
                badge_title: this.currentUser.badge_title || 'Lil Bitch'
            });
@@ -457,13 +458,13 @@ class ChallengeApp {
            },
            aggressive: {
                min: Math.max(1, Math.floor(maxPointsPerDay * 0.8)),
-               max: Math.min(maxPointsPerDay, Math.ceil(maxPointsPerDay * 0.95)),
+               max: Math.max(1, Math.floor(maxPointsPerDay * 0.95)),
                description: '80-95% completion'
            },
            psycho: {
-               min: Math.max(1, Math.floor(maxPointsPerDay * 0.95)),
+               min: maxPointsPerDay,
                max: maxPointsPerDay,
-               description: '95-100% completion'
+               description: '100% completion - PERFECT'
            }
        };
        
@@ -503,10 +504,10 @@ class ChallengeApp {
                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                            <p class="text-sm text-blue-800">
                                <strong>Your Challenge:</strong> ${maxPointsPerDay} goals/day max<br/>
-                               <strong>Psycho</strong> = Almost perfect every day<br/>
-                               <strong>Aggressive</strong> = Rarely misses goals<br/>
-                               <strong>Moderate</strong> = Solid consistency<br/>
-                               <strong>Casual</strong> = Good but has off days
+                               <strong>🔴 Psycho</strong> = PERFECT - Never misses a single goal<br/>
+                               <strong>🟠 Aggressive</strong> = Rarely misses goals<br/>
+                               <strong>🟡 Moderate</strong> = Solid consistency<br/>
+                               <strong>🟢 Casual</strong> = Good but has off days
                            </p>
                        </div>
                        

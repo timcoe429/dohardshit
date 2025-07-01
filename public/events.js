@@ -202,28 +202,33 @@ class EventHandler {
             const topFive = leaderboard.slice(0, 5);
             
             miniLeaderboard.innerHTML = topFive.map((user, index) => `
-                <div class="flex justify-between items-center py-1 ${user.username === this.app.currentUser?.username ? 'bg-blue-50 rounded px-2' : ''}">
+                <div class="flex justify-between items-center py-1 ${(user.username === this.app.currentUser?.username || user.name === this.app.currentUser?.username) ? 'bg-blue-50 rounded px-2' : ''}">
                     <div class="flex items-center space-x-2">
                         <span class="text-xs font-bold ${index === 0 ? 'text-yellow-600' : 'text-gray-500'}">
                             #${index + 1}
                         </span>
-                        <span class="text-sm">${user.username}</span>
+                        <span class="text-sm">${user.username || user.name || 'Unknown User'}</span>
                     </div>
-                    <span class="text-sm font-bold">${user.total_points}</span>
+                    <span class="text-sm font-bold">${user.total_points || 0}</span>
                 </div>
             `).join('');
             
             // Show current user's rank if not in top 5
-            const currentUserRank = leaderboard.findIndex(u => u.username === this.app.currentUser?.username);
+            const currentUserRank = leaderboard.findIndex(u => 
+                u.username === this.app.currentUser?.username || 
+                u.name === this.app.currentUser?.username
+            );
+            
             if (currentUserRank >= 5) {
+                const currentUser = leaderboard[currentUserRank];
                 miniLeaderboard.innerHTML += `
                     <div class="border-t pt-2 mt-2">
                         <div class="flex justify-between items-center py-1 bg-blue-50 rounded px-2">
                             <div class="flex items-center space-x-2">
                                 <span class="text-xs font-bold text-gray-500">#${currentUserRank + 1}</span>
-                                <span class="text-sm">${this.app.currentUser.username}</span>
+                                <span class="text-sm">${currentUser.username || currentUser.name || 'You'}</span>
                             </div>
-                            <span class="text-sm font-bold">${this.app.currentUser.total_points}</span>
+                            <span class="text-sm font-bold">${currentUser.total_points || 0}</span>
                         </div>
                     </div>
                 `;
