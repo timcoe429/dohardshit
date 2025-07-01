@@ -1132,8 +1132,20 @@ app.delete('/api/users/:userId', async (req, res) => {
     // Delete user's progress
     await pool.query('DELETE FROM daily_progress_v2 WHERE user_id = $1', [userId]);
     
-    // Delete user's challenges (using user_id, not created_by)
-    await pool.query('DELETE FROM challenges WHERE user_id = $1', [userId]);
+    // Delete user's challenge participations
+    await pool.query('DELETE FROM challenge_participants WHERE user_id = $1', [userId]);
+    
+    // Delete user's badges
+    await pool.query('DELETE FROM user_badges WHERE user_id = $1', [userId]);
+    
+    // Delete user's past challenges
+    await pool.query('DELETE FROM past_challenges WHERE user_id = $1', [userId]);
+    
+    // Delete user's ghost challengers
+    await pool.query('DELETE FROM ghost_challengers WHERE user_id = $1', [userId]);
+    
+    // Delete challenges created by this user
+    await pool.query('DELETE FROM challenges WHERE created_by = $1', [userId]);
     
     // Delete user
     await pool.query('DELETE FROM users WHERE id = $1', [userId]);

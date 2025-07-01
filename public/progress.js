@@ -57,6 +57,11 @@ class ProgressManager {
             today
         );
         
+        console.log('=== DEBUG: initTodayProgress ===');
+        console.log('Active challenge goals:', this.app.activeChallenge.goals);
+        console.log('Progress from database:', progress);
+        console.log('Today:', today);
+        
         if (!this.app.dailyProgress[today]) {
             this.app.dailyProgress[today] = {};
         }
@@ -69,7 +74,10 @@ class ProgressManager {
         // Then update with actual progress from database
         Object.keys(progress).forEach(goalIndex => {
             this.app.dailyProgress[today][goalIndex] = progress[goalIndex];
+            console.log(`Setting goal ${goalIndex} to ${progress[goalIndex]}`);
         });
+        
+        console.log('Final dailyProgress for today:', this.app.dailyProgress[today]);
     }
 
     // Helper method to get EST/EDT date
@@ -115,7 +123,10 @@ class ProgressManager {
         const currentState = this.app.dailyProgress[today][goalIndex] || false;
         const newState = !currentState;
         
-        console.log(`Toggling goal ${goalIndex}: ${currentState} -> ${newState}`);
+        console.log(`=== TOGGLE DEBUG ===`);
+        console.log(`Goal ${goalIndex}: ${currentState} -> ${newState}`);
+        console.log(`Goal text: ${this.app.activeChallenge.goals[goalIndex]}`);
+        console.log(`Current dailyProgress:`, this.app.dailyProgress[today]);
         
         // Update local state
         this.app.dailyProgress[today][goalIndex] = newState;
@@ -133,11 +144,22 @@ class ProgressManager {
                 newState
             );
             
-            // Update user points based on the change
-            if (newState) {
-                this.app.currentUser.total_points++;
-            } else {
-                this.app.currentUser.total_points = Math.max(0, this.app.currentUser.total_points - 1);
+            // Sync user points from server to ensure accuracy
+            try {
+                const userResponse = await fetch(`/api/users/${this.app.currentUser.id}`);
+                if (userResponse.ok) {
+                    const userData = await userResponse.json();
+                    this.app.currentUser.total_points = userData.total_points;
+                    console.log(`Synced total_points from server: ${userData.total_points}`);
+                }
+            } catch (err) {
+                console.error('Failed to sync user points:', err);
+                // Fallback to local calculation
+                if (newState) {
+                    this.app.currentUser.total_points++;
+                } else {
+                    this.app.currentUser.total_points = Math.max(0, this.app.currentUser.total_points - 1);
+                }
             }
             
             // Update the stats display
@@ -167,8 +189,7 @@ class ProgressManager {
             // Check if challenge is now complete
             await this.app.challengeManager.checkAndHandleCompletion();
             
-            // Update display and leaderboard
-            this.app.renderer.renderDashboard();
+            // Update leaderboard and ghost data (but don't re-render entire dashboard)
             await this.app.leaderboardManager.refreshLeaderboard();
             
             // Update ghost leaderboard if slide-out is open
