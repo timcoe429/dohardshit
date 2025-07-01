@@ -381,9 +381,9 @@ class ChallengeApp {
        const combinedUsers = [];
        
        // Add current user
-       if (this.activeChallenge) {
+       if (this.activeChallenge && this.currentUser) {
            combinedUsers.push({
-               name: this.currentUser.username,
+               name: this.currentUser.username || this.currentUser.name || 'You',
                points: this.currentUser.current_points || 0,
                type: 'user',
                badge_title: this.currentUser.badge_title || 'Lil Bitch'

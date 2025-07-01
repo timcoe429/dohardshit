@@ -79,9 +79,6 @@ class EventHandler {
         // Dashboard Action Events
         const addGhostBtn = document.getElementById('addGhostBtn');
         const addPrevSelfBtn = document.getElementById('addPrevSelfBtn');
-        const viewStatsBtn = document.getElementById('viewStatsBtn');
-        const viewLeaderboardBtn = document.getElementById('viewLeaderboardBtn');
-        const manageUsersBtn = document.getElementById('manageUsersBtn');
         
         if (addGhostBtn) {
             addGhostBtn.addEventListener('click', () => {
@@ -95,20 +92,8 @@ class EventHandler {
             });
         }
         
-        if (viewStatsBtn) {
-            viewStatsBtn.addEventListener('click', () => {
-                this.app.showStatsModal();
-                this.closeSlideDashboard();
-            });
-        }
-        
-        if (viewLeaderboardBtn) {
-            viewLeaderboardBtn.addEventListener('click', () => {
-                this.app.showLeaderboardModal();
-                this.closeSlideDashboard();
-            });
-        }
-        
+        // Settings tab actions
+        const manageUsersBtn = document.getElementById('manageUsersBtn');
         if (manageUsersBtn) {
             manageUsersBtn.addEventListener('click', () => {
                 this.app.showUserManagement();
@@ -198,6 +183,58 @@ class EventHandler {
             selectedTab.classList.add('active', 'text-black', 'border-black');
             selectedTab.classList.remove('text-gray-500');
             selectedContent.classList.remove('hidden');
+            
+            // Load specific tab content
+            if (tabName === 'stats') {
+                this.loadMiniLeaderboard();
+            }
+        }
+    }
+    
+    async loadMiniLeaderboard() {
+        try {
+            const response = await fetch('/api/leaderboard');
+            const leaderboard = await response.json();
+            
+            const miniLeaderboard = document.getElementById('miniLeaderboard');
+            if (!miniLeaderboard) return;
+            
+            const topFive = leaderboard.slice(0, 5);
+            
+            miniLeaderboard.innerHTML = topFive.map((user, index) => `
+                <div class="flex justify-between items-center py-1 ${user.username === this.app.currentUser?.username ? 'bg-blue-50 rounded px-2' : ''}">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-bold ${index === 0 ? 'text-yellow-600' : 'text-gray-500'}">
+                            #${index + 1}
+                        </span>
+                        <span class="text-sm">${user.username}</span>
+                    </div>
+                    <span class="text-sm font-bold">${user.total_points}</span>
+                </div>
+            `).join('');
+            
+            // Show current user's rank if not in top 5
+            const currentUserRank = leaderboard.findIndex(u => u.username === this.app.currentUser?.username);
+            if (currentUserRank >= 5) {
+                miniLeaderboard.innerHTML += `
+                    <div class="border-t pt-2 mt-2">
+                        <div class="flex justify-between items-center py-1 bg-blue-50 rounded px-2">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs font-bold text-gray-500">#${currentUserRank + 1}</span>
+                                <span class="text-sm">${this.app.currentUser.username}</span>
+                            </div>
+                            <span class="text-sm font-bold">${this.app.currentUser.total_points}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+        } catch (error) {
+            console.error('Failed to load mini leaderboard:', error);
+            const miniLeaderboard = document.getElementById('miniLeaderboard');
+            if (miniLeaderboard) {
+                miniLeaderboard.innerHTML = '<p class="text-gray-500 text-sm">Unable to load rankings</p>';
+            }
         }
     }
     

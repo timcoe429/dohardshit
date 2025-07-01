@@ -222,11 +222,11 @@ class Renderer {
             <div id="slideOutDashboard" class="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 border-l-4 border-black">
                 <div class="h-full flex flex-col">
                     <!-- Dashboard Header -->
-                    <div class="p-6 border-b-2 border-gray-200 bg-gradient-to-r from-black to-red-600">
+                    <div class="p-6 border-b-2 border-gray-200 bg-black">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h2 class="text-xl font-bold text-white">⚔️ Battle Dashboard</h2>
-                                <p class="text-sm text-gray-200">Manage your competition</p>
+                                <p class="text-sm text-gray-300">Manage your competition</p>
                             </div>
                             <button id="closeDashboardBtn" class="text-white hover:text-gray-300 text-2xl">✕</button>
                         </div>
@@ -682,29 +682,64 @@ class Renderer {
                     </div>
                 </div>
                 
-                <!-- Action Buttons -->
-                <div class="space-y-2">
-                    <button 
-                        id="viewStatsBtn" 
-                        class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition-colors"
-                    >
-                        📊 View Detailed Stats
-                    </button>
-                    <button 
-                        id="viewLeaderboardBtn" 
-                        class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-medium transition-colors"
-                    >
-                        🏆 Global Leaderboard
-                    </button>
-                    <button 
-                        id="manageUsersBtn" 
-                        class="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg font-medium transition-colors"
-                    >
-                        👥 Manage Users
-                    </button>
+                <!-- Current User Badge -->
+                <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
+                    <h4 class="font-bold text-gray-700 mb-2">Current Badge</h4>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">${this.getBadgeIcon(this.app.currentUser.badge_title)}</span>
+                        <div>
+                            <p class="font-medium">${this.app.currentUser.badge_title || 'Lil Bitch'}</p>
+                            <p class="text-xs text-gray-500">Current streak: ${this.app.currentUser.current_streak || 0} days</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mini Global Leaderboard -->
+                <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
+                    <h4 class="font-bold text-gray-700 mb-3">🏆 Global Rankings</h4>
+                    <div id="miniLeaderboard" class="space-y-2">
+                        <p class="text-gray-500 text-sm">Loading rankings...</p>
+                    </div>
+                </div>
+                
+                <!-- Challenge History -->
+                <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
+                    <h4 class="font-bold text-gray-700 mb-3">📊 Recent Challenges</h4>
+                    <div id="recentChallenges" class="space-y-2">
+                        ${this.renderRecentChallenges()}
+                    </div>
                 </div>
             </div>
         `;
+    }
+    
+    getBadgeIcon(badgeTitle) {
+        if (!badgeTitle) return '🍆';
+        if (badgeTitle.includes('LEGEND')) return '👑';
+        if (badgeTitle.includes('SAVAGE')) return '💀';
+        if (badgeTitle.includes('WARRIOR')) return '⚡';
+        if (badgeTitle.includes('BEAST')) return '🔥';
+        return '🍆';
+    }
+    
+    renderRecentChallenges() {
+        if (!this.app.pastChallenges || this.app.pastChallenges.length === 0) {
+            return '<p class="text-gray-500 text-sm">No completed challenges yet</p>';
+        }
+        
+        const recentThree = this.app.pastChallenges.slice(0, 3);
+        return recentThree.map(challenge => `
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                <div>
+                    <p class="text-sm font-medium">${challenge.challenge_name}</p>
+                    <p class="text-xs text-gray-500">${challenge.completion_percentage}% complete</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-bold">${challenge.points_earned}</p>
+                    <p class="text-xs text-gray-500">pts</p>
+                </div>
+            </div>
+        `).join('');
     }
     
     renderSettingsTab() {
@@ -713,6 +748,13 @@ class Renderer {
                 <div class="text-center">
                     <h3 class="text-lg font-bold text-gray-700 mb-4">Account Settings</h3>
                 </div>
+                
+                <button 
+                    id="manageUsersBtn" 
+                    class="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg font-bold transition-colors"
+                >
+                    👥 Manage Users
+                </button>
                 
                 <button 
                     id="logoutBtn" 
