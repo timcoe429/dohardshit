@@ -334,7 +334,7 @@ class ChallengeApp {
            
            this.currentGhosts = ghosts;
            this.updateGhostsList();
-           this.updateGhostLeaderboard();
+           await this.updateGhostLeaderboard();
        } catch (error) {
            console.error('Failed to load ghost challengers:', error);
        }
@@ -373,7 +373,7 @@ class ChallengeApp {
        `).join('');
    }
    
-   updateGhostLeaderboard() {
+   async updateGhostLeaderboard() {
        const ghostLeaderboard = document.getElementById('ghostLeaderboard');
        if (!ghostLeaderboard) return;
        
@@ -382,10 +382,12 @@ class ChallengeApp {
        
        // Add current user with their actual current challenge points
        if (this.activeChallenge && this.currentUser) {
-           const userCurrentPoints = this.activeChallenge.current_points || 0;
+           // Use existing challenge stats calculation
+           const stats = await this.challengeManager.calculateChallengeStats();
+           
            combinedUsers.push({
                name: this.currentUser.username || this.currentUser.name || 'You',
-               points: userCurrentPoints,
+               points: stats.pointsEarned,
                type: 'user',
                badge_title: this.currentUser.badge_title || 'Lil Bitch'
            });

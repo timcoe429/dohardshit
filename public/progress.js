@@ -173,7 +173,7 @@ class ProgressManager {
             
             // Update ghost leaderboard if slide-out is open
             if (this.app.currentGhosts) {
-                this.app.updateGhostLeaderboard();
+                await this.app.updateGhostLeaderboard();
             }
         } catch (err) {
             console.error('Failed to update progress:', err);
