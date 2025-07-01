@@ -141,3 +141,52 @@ class ValidationUtils {
         };
     }
 }
+
+// === DAILY MOTIVATIONAL QUOTES ===
+const BRUTAL_QUOTES = [
+    "Don't Be a Pussy Today. Get After It.",
+    "Your Excuses Are Weak. Move Your Ass.",
+    "You're Not Tired. You're Just Soft.",
+    "If Today Breaks You, You Deserved It.",
+    "Quit bitching. No one gives a fuck. Move.",
+    "Weak men whine. Real ones shut the fuck up and work.",
+    "You're not tired. You're just acting like a little bitch.",
+    "Get your ass up. You ain't earned a break.",
+    "Soft fucks scroll. You suffer. That's why you win.",
+    "You don't need motivation. You need to stop being a pussy.",
+    "Comfort's for cowards. Burn that shit down.",
+    "If you lose today, it's because you fucked around.",
+    "Stop making excuses and start making moves.",
+    "Pain is just weakness leaving your pathetic body.",
+    "Everyone else is sleeping. That's your advantage.",
+    "You're either growing or you're dying. Pick one.",
+    "Fuck your feelings. What did you accomplish?",
+    "Average people make average excuses.",
+    "You think champions care about your comfort?",
+    "Discipline weighs ounces. Regret weighs tons.",
+    "Your future self is judging your lazy ass right now.",
+    "Winners don't wait for motivation. They create it.",
+    "Stop being a spectator in your own fucking life.",
+    "The grind doesn't stop because you're tired.",
+    "Mediocrity is a choice. Stop choosing it."
+];
+
+class MotivationUtils {
+    static getDailyQuote() {
+        // Use today's date as seed for consistent daily quote
+        const today = new Date();
+        const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // Simple hash function to convert date to number
+        let hash = 0;
+        for (let i = 0; i < dateString.length; i++) {
+            const char = dateString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        
+        // Ensure positive index
+        const index = Math.abs(hash) % BRUTAL_QUOTES.length;
+        return BRUTAL_QUOTES[index];
+    }
+}

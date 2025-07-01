@@ -98,7 +98,7 @@ class Renderer {
                             </div>
                             <div>
                                 <h1 class="text-xl font-black text-gray-800">DO<span class="text-red-600">HARD</span>SHIT</h1>
-                                <p class="text-sm text-gray-600">Get after it, ${this.app.currentUser.name}!</p>
+                                <p class="text-sm text-gray-600">${MotivationUtils.getDailyQuote()}</p>
                             </div>
                         </div>
                         <div class="flex items-center space-x-4">
