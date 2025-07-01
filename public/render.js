@@ -281,11 +281,7 @@ class Renderer {
         // Get the new element after replacing HTML
         const newElement = document.querySelector(`[data-goal-index="${goalIndex}"]`);
         
-        // Reattach event listener for the new element
-        newElement.addEventListener('click', () => {
-            console.log(`Reattaching click handler for goal ${goalIndex}`);
-            this.app.progressManager.toggleGoal(goalIndex);
-        });
+        // Event listener is handled by event delegation in events.js - no need to reattach
         
         // Add click animation
         setTimeout(() => {

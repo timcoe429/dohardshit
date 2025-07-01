@@ -2,6 +2,7 @@
 class EventHandler {
     constructor(app) {
         this.app = app;
+        this.goalDelegationAdded = false;
     }
     
     attachLoginEvents() {
@@ -107,15 +108,19 @@ class EventHandler {
             });
         }
 
-        // Fix: Make sure each goal item has its click handler
-        goalItems.forEach(item => {
-            const goalIndex = parseInt(item.getAttribute('data-goal-index'));
-            
-            item.addEventListener('click', () => {
-                console.log(`Goal ${goalIndex} clicked`);
-                this.app.progressManager.toggleGoal(goalIndex);
+        // Use event delegation for goal clicks to handle dynamically updated elements
+        // Only add this listener once to prevent multiple handlers
+        if (!this.goalDelegationAdded) {
+            document.addEventListener('click', (e) => {
+                const goalElement = e.target.closest('[data-goal-index]');
+                if (goalElement && goalElement.closest('#goalsList')) {
+                    const goalIndex = parseInt(goalElement.getAttribute('data-goal-index'));
+                    console.log(`Goal ${goalIndex} clicked`);
+                    this.app.progressManager.toggleGoal(goalIndex);
+                }
             });
-        });
+            this.goalDelegationAdded = true;
+        }
 
         if (leaderboardBtn) {
             leaderboardBtn.addEventListener('click', () => {
