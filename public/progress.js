@@ -189,9 +189,6 @@ class ProgressManager {
             // Check if challenge is now complete
             await this.app.challengeManager.checkAndHandleCompletion();
             
-            // Update leaderboard and ghost data (but don't re-render entire dashboard)
-            await this.app.leaderboardManager.refreshLeaderboard();
-            
             // Update ghost leaderboard if slide-out is open
             if (this.app.currentGhosts) {
                 await this.app.updateGhostLeaderboard();
