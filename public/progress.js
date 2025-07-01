@@ -151,6 +151,12 @@ class ProgressManager {
                     const userData = await userResponse.json();
                     this.app.currentUser.total_points = userData.total_points;
                     console.log(`Synced total_points from server: ${userData.total_points}`);
+                    
+                    // Update all point displays everywhere
+                    this.updateAllPointDisplays();
+                    
+                    // Also refresh leaderboard to ensure consistency
+                    await this.app.leaderboardManager.loadLeaderboard();
                 }
             } catch (err) {
                 console.error('Failed to sync user points:', err);
@@ -160,10 +166,8 @@ class ProgressManager {
                 } else {
                     this.app.currentUser.total_points = Math.max(0, this.app.currentUser.total_points - 1);
                 }
+                this.updateAllPointDisplays();
             }
-            
-            // Update the stats display
-            this.app.renderer.updateStats();
             
             // Check for new badges only when completing a goal
             if (newState && this.app.currentUser) {
@@ -232,5 +236,58 @@ class ProgressManager {
                 })
             });
         }
+    }
+    
+    updateAllPointDisplays() {
+        const totalPoints = this.app.currentUser.total_points;
+        const todayPoints = this.getTodayPoints();
+        const completion = this.getCompletionPercentage();
+        
+        console.log(`Updating all displays - Total: ${totalPoints}, Today: ${todayPoints}`);
+        
+        // Update header points (multiple possible selectors)
+        const headerSelectors = [
+            '.text-black:contains("points")',
+            'header .text-black',
+            '.points-display',
+            '.total-points'
+        ];
+        
+        // Update total points in header - try multiple selectors
+        const allTextElements = document.querySelectorAll('.text-black');
+        allTextElements.forEach(el => {
+            if (el.textContent.includes('points')) {
+                el.textContent = `${totalPoints} points`;
+            }
+        });
+        
+        // Update today's points - try multiple selectors
+        const todaySelectors = [
+            '.grid .text-2xl.text-black',
+            '.today-points',
+            '[data-stat="today-points"]'
+        ];
+        
+        todaySelectors.forEach(selector => {
+            const element = document.querySelector(selector);
+            if (element) {
+                element.textContent = todayPoints;
+            }
+        });
+        
+        // Update completion percentage
+        const completionElement = document.querySelector('.text-2xl.text-green-600');
+        if (completionElement) {
+            completionElement.textContent = `${completion}%`;
+        }
+        
+        // Update any other point displays
+        const pointElements = document.querySelectorAll('[data-points]');
+        pointElements.forEach(el => {
+            el.textContent = totalPoints;
+        });
+        
+        // Trigger a re-render of the stats area
+        this.app.renderer.updateStats();
     }
 }

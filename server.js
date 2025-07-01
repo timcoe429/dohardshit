@@ -282,6 +282,23 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
+// Get user data
+app.get('/api/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await pool.query('SELECT id, name, total_points, created_at FROM users WHERE id = $1', [userId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Get user error:', err);
+    res.status(500).json({ error: 'Failed to get user' });
+  }
+});
+
 // Get user's challenges
 app.get('/api/users/:userId/challenges', async (req, res) => {
   try {
@@ -1129,8 +1146,27 @@ app.delete('/api/users/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Delete user's progress
+    console.log(`Deleting user ${userId} and all related data...`);
+    
+    // Delete ghost daily progress for user's ghosts (cascade from ghost_challengers)
+    await pool.query(`
+      DELETE FROM ghost_daily_progress 
+      WHERE ghost_id IN (SELECT id FROM ghost_challengers WHERE user_id = $1)
+    `, [userId]);
+    
+    // Delete user's ghost challengers
+    await pool.query('DELETE FROM ghost_challengers WHERE user_id = $1', [userId]);
+    
+    // Delete user's message reactions
+    await pool.query('DELETE FROM message_reactions WHERE user_id = $1', [userId]);
+    
+    // Delete user's chat messages
+    await pool.query('DELETE FROM chat_messages WHERE user_id = $1', [userId]);
+    
+    // Delete user's daily progress (both tables)
     await pool.query('DELETE FROM daily_progress_v2 WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM daily_progress WHERE user_id = $1', [userId]);
+    await pool.query('DELETE FROM daily_progress_summary WHERE user_id = $1', [userId]);
     
     // Delete user's challenge participations
     await pool.query('DELETE FROM challenge_participants WHERE user_id = $1', [userId]);
@@ -1141,19 +1177,21 @@ app.delete('/api/users/:userId', async (req, res) => {
     // Delete user's past challenges
     await pool.query('DELETE FROM past_challenges WHERE user_id = $1', [userId]);
     
-    // Delete user's ghost challengers
-    await pool.query('DELETE FROM ghost_challengers WHERE user_id = $1', [userId]);
-    
     // Delete challenges created by this user
     await pool.query('DELETE FROM challenges WHERE created_by = $1', [userId]);
     
     // Delete user
-    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    const userResult = await pool.query('DELETE FROM users WHERE id = $1 RETURNING name', [userId]);
     
-    res.json({ success: true });
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    console.log(`Successfully deleted user ${userResult.rows[0].name} (ID: ${userId})`);
+    res.json({ success: true, deletedUser: userResult.rows[0].name });
   } catch (error) {
     console.error('Delete user error:', error);
-    res.status(500).json({ error: 'Failed to delete user' });
+    res.status(500).json({ error: 'Failed to delete user', details: error.message });
   }
 });
 
