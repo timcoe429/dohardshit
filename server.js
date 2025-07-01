@@ -1231,23 +1231,39 @@ app.post('/api/users/:userId/challenges/:challengeId/ghosts', async (req, res) =
     const { userId, challengeId } = req.params;
     const { ghostName, difficultyLevel, ghostType = 'ai' } = req.body;
     
-    // Set point ranges based on difficulty
-    const difficultySettings = {
-      casual: { min: 2, max: 4 },
-      moderate: { min: 4, max: 7 },
-      aggressive: { min: 7, max: 10 },
-      psycho: { min: 10, max: 12 }
-    };
-    
-    const settings = difficultySettings[difficultyLevel] || difficultySettings.moderate;
-    
-    // Get current challenge day to start ghost from same position
-    const challengeResult = await pool.query('SELECT created_at, duration FROM challenges WHERE id = $1', [challengeId]);
+    // Get challenge details to calculate realistic point ranges
+    const challengeResult = await pool.query('SELECT created_at, duration, goals FROM challenges WHERE id = $1', [challengeId]);
     if (challengeResult.rows.length === 0) {
       return res.status(404).json({ error: 'Challenge not found' });
     }
     
     const challenge = challengeResult.rows[0];
+    const maxPointsPerDay = challenge.goals.length;
+    
+    // Set point ranges based on challenge goals and difficulty percentage
+    const difficultySettings = {
+      casual: { 
+        minPercent: 0.4, 
+        maxPercent: 0.6 
+      },
+      moderate: { 
+        minPercent: 0.6, 
+        maxPercent: 0.8 
+      },
+      aggressive: { 
+        minPercent: 0.8, 
+        maxPercent: 0.95 
+      },
+      psycho: { 
+        minPercent: 0.95, 
+        maxPercent: 1.0 
+      }
+    };
+    
+    const settings = difficultySettings[difficultyLevel] || difficultySettings.moderate;
+    const pointsMin = Math.max(1, Math.floor(maxPointsPerDay * settings.minPercent));
+    const pointsMax = Math.min(maxPointsPerDay, Math.ceil(maxPointsPerDay * settings.maxPercent));
+    
     const startDate = new Date(challenge.created_at);
     const today = new Date();
     const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
@@ -1256,7 +1272,7 @@ app.post('/api/users/:userId/challenges/:challengeId/ghosts', async (req, res) =
     // Calculate points the ghost should have by now
     let totalPoints = 0;
     for (let day = 1; day < currentDay; day++) {
-      const dailyPoints = Math.floor(Math.random() * (settings.max - settings.min + 1)) + settings.min;
+      const dailyPoints = Math.floor(Math.random() * (pointsMax - pointsMin + 1)) + pointsMin;
       totalPoints += dailyPoints;
     }
     
@@ -1265,7 +1281,7 @@ app.post('/api/users/:userId/challenges/:challengeId/ghosts', async (req, res) =
         user_id, challenge_id, ghost_name, difficulty_level, 
         points_per_day_min, points_per_day_max, current_points, current_day, ghost_type
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
-    `, [userId, challengeId, ghostName, difficultyLevel, settings.min, settings.max, totalPoints, currentDay, ghostType]);
+    `, [userId, challengeId, ghostName, difficultyLevel, pointsMin, pointsMax, totalPoints, currentDay, ghostType]);
     
     res.json(result.rows[0]);
   } catch (err) {
@@ -1344,22 +1360,21 @@ app.post('/api/users/:userId/ghosts/update-all', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Get all active ghosts for user
-    const ghostsResult = await pool.query(
-      'SELECT gc.* FROM ghost_challengers gc JOIN challenges c ON gc.challenge_id = c.id WHERE gc.user_id = $1 AND gc.is_active = true AND c.status = $2',
-      [userId, 'active']
-    );
+    // Get all active ghosts for user with their challenge info
+    const ghostsResult = await pool.query(`
+      SELECT gc.*, c.goals, c.created_at as challenge_start, c.duration 
+      FROM ghost_challengers gc 
+      JOIN challenges c ON gc.challenge_id = c.id 
+      WHERE gc.user_id = $1 AND gc.is_active = true AND c.status = $2
+    `, [userId, 'active']);
     
     const updatedGhosts = [];
     
     for (const ghost of ghostsResult.rows) {
-      // Get challenge details to determine valid date range
-      const challengeResult = await pool.query('SELECT created_at, duration FROM challenges WHERE id = $1', [ghost.challenge_id]);
-      const challenge = challengeResult.rows[0];
-      
-      const startDate = new Date(challenge.created_at);
+      const maxPointsPerDay = ghost.goals.length;
+      const startDate = new Date(ghost.challenge_start);
       const endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + challenge.duration - 1);
+      endDate.setDate(startDate.getDate() + ghost.duration - 1);
       const today = new Date();
       
       // Get all dates the ghost should have progress for
@@ -1378,7 +1393,7 @@ app.post('/api/users/:userId/ghosts/update-all', async (req, res) => {
         );
         
         if (existingProgress.rows.length === 0) {
-          // Generate points for this day
+          // Generate points for this day using stored min/max
           const pointsEarned = Math.floor(
             Math.random() * (ghost.points_per_day_max - ghost.points_per_day_min + 1)
           ) + ghost.points_per_day_min;
@@ -1396,7 +1411,7 @@ app.post('/api/users/:userId/ghosts/update-all', async (req, res) => {
         currentDate.setDate(currentDate.getDate() + 1);
       }
       
-      // Update ghost total points and current day
+      // Update ghost total points
       if (totalPointsAdded > 0) {
         await pool.query(
           'UPDATE ghost_challengers SET current_points = current_points + $1 WHERE id = $2',

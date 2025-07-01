@@ -439,6 +439,34 @@ class ChallengeApp {
    }
    
    showAddGhostModal() {
+       if (!this.activeChallenge) return;
+       
+       const maxPointsPerDay = this.activeChallenge.goals.length;
+       
+       // Calculate realistic ranges based on challenge goals
+       const difficultyRanges = {
+           casual: {
+               min: Math.max(1, Math.floor(maxPointsPerDay * 0.4)),
+               max: Math.ceil(maxPointsPerDay * 0.6),
+               description: '40-60% completion'
+           },
+           moderate: {
+               min: Math.max(1, Math.floor(maxPointsPerDay * 0.6)),
+               max: Math.ceil(maxPointsPerDay * 0.8),
+               description: '60-80% completion'
+           },
+           aggressive: {
+               min: Math.max(1, Math.floor(maxPointsPerDay * 0.8)),
+               max: Math.min(maxPointsPerDay, Math.ceil(maxPointsPerDay * 0.95)),
+               description: '80-95% completion'
+           },
+           psycho: {
+               min: Math.max(1, Math.floor(maxPointsPerDay * 0.95)),
+               max: maxPointsPerDay,
+               description: '95-100% completion'
+           }
+       };
+       
        const modalHTML = `
            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="addGhostModal">
                <div class="bg-white rounded-lg p-6 w-96 max-w-90vw">
@@ -465,16 +493,20 @@ class ChallengeApp {
                                id="difficultyLevel" 
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black"
                            >
-                               <option value="casual">🟢 Casual (2-4 points/day)</option>
-                               <option value="moderate" selected>🟡 Moderate (4-7 points/day)</option>
-                               <option value="aggressive">🟠 Aggressive (7-10 points/day)</option>
-                               <option value="psycho">🔴 Psycho (10-12 points/day)</option>
+                               <option value="casual">🟢 Casual (${difficultyRanges.casual.min}-${difficultyRanges.casual.max} goals/day)</option>
+                               <option value="moderate" selected>🟡 Moderate (${difficultyRanges.moderate.min}-${difficultyRanges.moderate.max} goals/day)</option>
+                               <option value="aggressive">🟠 Aggressive (${difficultyRanges.aggressive.min}-${difficultyRanges.aggressive.max} goals/day)</option>
+                               <option value="psycho">🔴 Psycho (${difficultyRanges.psycho.min}-${difficultyRanges.psycho.max} goals/day)</option>
                            </select>
                        </div>
                        
-                       <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                           <p class="text-sm text-yellow-800">
-                               <strong>Note:</strong> Ghost will start from your current challenge day with accumulated points based on their difficulty level.
+                       <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                           <p class="text-sm text-blue-800">
+                               <strong>Your Challenge:</strong> ${maxPointsPerDay} goals/day max<br/>
+                               <strong>Psycho</strong> = Almost perfect every day<br/>
+                               <strong>Aggressive</strong> = Rarely misses goals<br/>
+                               <strong>Moderate</strong> = Solid consistency<br/>
+                               <strong>Casual</strong> = Good but has off days
                            </p>
                        </div>
                        
