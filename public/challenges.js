@@ -93,8 +93,20 @@ class ChallengeManager {
         const timeDiff = nowEST.getTime() - createdEST.getTime();
         const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
         
-        // Don't go beyond the challenge duration
-        return Math.min(dayDiff, this.app.activeChallenge.duration);
+        console.log('📅 Challenge Day Calculation:', {
+            challengeName: this.app.activeChallenge.name,
+            createdAt: createdAt.toISOString(),
+            now: now.toISOString(),
+            timeDiff: timeDiff,
+            dayDiff: dayDiff,
+            duration: this.app.activeChallenge.duration
+        });
+        
+        // Ensure minimum day 1, maximum duration
+        const currentDay = Math.max(1, Math.min(dayDiff, this.app.activeChallenge.duration));
+        
+        console.log('📅 Final Current Day:', currentDay);
+        return currentDay;
     }
     
     getChallengeProgress() {

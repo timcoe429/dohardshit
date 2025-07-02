@@ -110,8 +110,17 @@ class StatsService {
         const isComplete = this.app.challengeManager?.isChallengeComplete() || false;
         if (isComplete) return 0;
         
-        const currentDay = this.app.challengeManager?.getCurrentChallengeDay() || 0;
-        return currentDay;
+        const currentDay = this.app.challengeManager?.getCurrentChallengeDay() || 1;
+        console.log('🗓️ Challenge Days Debug:', {
+            hasActiveChallenge: !!this.app.activeChallenge,
+            isComplete,
+            currentDay,
+            challengeName: this.app.activeChallenge?.name,
+            createdAt: this.app.activeChallenge?.created_at
+        });
+        
+        // Ensure we never show Day 0 - minimum should be Day 1
+        return Math.max(currentDay, 1);
     }
 
     calculateChallengeProgress() {
