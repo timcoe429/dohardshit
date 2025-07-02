@@ -90,6 +90,15 @@ class Renderer {
             this.app.statsService.getChallengeDays() : 
             this.app.challengeManager.getCurrentChallengeDay();
         
+        // Debug logging for challenge day display
+        console.log('🎯 Dashboard Render Debug:', {
+            hasStatsService: !!this.app.statsService,
+            statsServiceChallengeDays: this.app.statsService?.getChallengeDays(),
+            challengeManagerCurrentDay: this.app.challengeManager?.getCurrentChallengeDay(),
+            finalChallengeDay: challengeDay,
+            activeChallenge: this.app.activeChallenge?.name
+        });
+        
         const challengeProgress = this.app.statsService ? 
             this.app.statsService.getChallengeProgress() : 
             this.app.challengeManager.getChallengeProgress();

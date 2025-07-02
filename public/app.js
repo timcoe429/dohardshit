@@ -52,12 +52,17 @@ class ChallengeApp {
         } else {
             // Load initial data
             await this.loadUserData();
-            await this.challengeManager.loadActiveChallenge();
+            await this.challengeManager.loadChallenges(this.currentUser.id);
             await this.loadPastChallenges();
             
             // Update ghost challengers (catch-up mechanism)
             if (this.currentUser) {
                 await this.updateAllGhosts();
+            }
+
+            // Sync stats before rendering to ensure correct display
+            if (this.statsService) {
+                await this.statsService.syncAllStats();
             }
 
             this.renderer.renderDashboard();

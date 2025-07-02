@@ -148,7 +148,14 @@ class StatsService {
     }
 
     getChallengeDays() {
-        return this.stats.challengeDays;
+        // Ensure we never return 0 for an active challenge
+        const challengeDays = Math.max(this.stats.challengeDays, 1);
+        console.log('📊 StatsService getChallengeDays:', {
+            rawStats: this.stats.challengeDays,
+            finalValue: challengeDays,
+            hasActiveChallenge: !!this.app.activeChallenge
+        });
+        return challengeDays;
     }
 
     getChallengeProgress() {
@@ -278,8 +285,8 @@ class StatsService {
         }
 
         // Refresh main leaderboard if needed
-        if (this.app.leaderboardManager) {
-            this.app.leaderboardManager.loadLeaderboard();
+        if (this.app.loadLeaderboard) {
+            this.app.loadLeaderboard();
         }
     }
 
