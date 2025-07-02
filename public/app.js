@@ -78,6 +78,21 @@ class ChallengeApp {
        }
    }
 
+   async loadUserData() {
+       try {
+           if (!this.currentUser) return;
+           const response = await fetch(`/api/users/${this.currentUser.id}`);
+           if (response.ok) {
+               const userData = await response.json();
+               // Update current user data with server data
+               this.currentUser.total_points = userData.total_points;
+               console.log(`Loaded user data - total_points: ${userData.total_points}`);
+           }
+       } catch (err) {
+           console.error('Load user data error:', err);
+       }
+   }
+
    async loadUserStats() {
        try {
            if (!this.currentUser) return;
@@ -380,14 +395,11 @@ class ChallengeApp {
        // Combine real user and ghosts for this user's personal leaderboard
        const combinedUsers = [];
        
-       // Add current user with their actual current challenge points
+       // Add current user with their total points (not just current challenge)
        if (this.activeChallenge && this.currentUser) {
-           // Use existing challenge stats calculation
-           const stats = await this.challengeManager.calculateChallengeStats();
-           
            combinedUsers.push({
                name: this.currentUser.username || this.currentUser.name || 'You',
-               points: stats.pointsEarned,
+               points: this.currentUser.total_points, // Use total_points instead of current challenge points
                type: 'user',
                badge_title: this.currentUser.badge_title || 'Lil Bitch'
            });

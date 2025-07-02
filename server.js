@@ -93,6 +93,20 @@ async function initDB() {
       )
     `);
 
+    // Create daily_progress_v2 table (the main progress tracking table)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS daily_progress_v2 (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        challenge_id INTEGER REFERENCES challenges(id),
+        date DATE NOT NULL,
+        goal_index INTEGER NOT NULL,
+        completed BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, challenge_id, date, goal_index)
+      )
+    `);
+
     // NEW: Create chat tables
     await pool.query(`
       CREATE TABLE IF NOT EXISTS chat_messages (
@@ -1143,55 +1157,83 @@ app.get('/api/health', (req, res) => {
 
 // Delete user endpoint
 app.delete('/api/users/:userId', async (req, res) => {
+  const client = await pool.connect();
   try {
     const { userId } = req.params;
     
     console.log(`Deleting user ${userId} and all related data...`);
     
-    // Delete ghost daily progress for user's ghosts (cascade from ghost_challengers)
-    await pool.query(`
+    // Start transaction
+    await client.query('BEGIN');
+    
+    // Delete in order to avoid foreign key constraints
+    console.log('1. Deleting ghost daily progress...');
+    const ghostResult = await client.query(`
       DELETE FROM ghost_daily_progress 
       WHERE ghost_id IN (SELECT id FROM ghost_challengers WHERE user_id = $1)
     `, [userId]);
+    console.log(`   Deleted ${ghostResult.rowCount} ghost daily progress records`);
     
-    // Delete user's ghost challengers
-    await pool.query('DELETE FROM ghost_challengers WHERE user_id = $1', [userId]);
+    console.log('2. Deleting ghost challengers...');
+    const ghostChallengersResult = await client.query('DELETE FROM ghost_challengers WHERE user_id = $1', [userId]);
+    console.log(`   Deleted ${ghostChallengersResult.rowCount} ghost challengers`);
     
-    // Delete user's message reactions
-    await pool.query('DELETE FROM message_reactions WHERE user_id = $1', [userId]);
+    console.log('3. Deleting message reactions...');
+    const reactionsResult = await client.query('DELETE FROM message_reactions WHERE user_id = $1', [userId]);
+    console.log(`   Deleted ${reactionsResult.rowCount} message reactions`);
     
-    // Delete user's chat messages
-    await pool.query('DELETE FROM chat_messages WHERE user_id = $1', [userId]);
+    console.log('4. Deleting chat messages...');
+    const messagesResult = await client.query('DELETE FROM chat_messages WHERE user_id = $1', [userId]);
+    console.log(`   Deleted ${messagesResult.rowCount} chat messages`);
     
-    // Delete user's daily progress (both tables)
-    await pool.query('DELETE FROM daily_progress_v2 WHERE user_id = $1', [userId]);
-    await pool.query('DELETE FROM daily_progress WHERE user_id = $1', [userId]);
-    await pool.query('DELETE FROM daily_progress_summary WHERE user_id = $1', [userId]);
+    console.log('5. Deleting daily progress records...');
+    const dailyProgressV2Result = await client.query('DELETE FROM daily_progress_v2 WHERE user_id = $1', [userId]);
+    console.log(`   Deleted ${dailyProgressV2Result.rowCount} daily_progress_v2 records`);
     
-    // Delete user's challenge participations
-    await pool.query('DELETE FROM challenge_participants WHERE user_id = $1', [userId]);
+    const dailyProgressResult = await client.query('DELETE FROM daily_progress WHERE user_id = $1', [userId]);
+    console.log(`   Deleted ${dailyProgressResult.rowCount} daily_progress records`);
     
-    // Delete user's badges
-    await pool.query('DELETE FROM user_badges WHERE user_id = $1', [userId]);
+    const dailySummaryResult = await client.query('DELETE FROM daily_progress_summary WHERE user_id = $1', [userId]);
+    console.log(`   Deleted ${dailySummaryResult.rowCount} daily progress summary records`);
     
-    // Delete user's past challenges
-    await pool.query('DELETE FROM past_challenges WHERE user_id = $1', [userId]);
+    console.log('6. Deleting challenge participations...');
+    const participationsResult = await client.query('DELETE FROM challenge_participants WHERE user_id = $1', [userId]);
+    console.log(`   Deleted ${participationsResult.rowCount} challenge participations`);
     
-    // Delete challenges created by this user
-    await pool.query('DELETE FROM challenges WHERE created_by = $1', [userId]);
+    console.log('7. Deleting user badges...');
+    const badgesResult = await client.query('DELETE FROM user_badges WHERE user_id = $1', [userId]);
+    console.log(`   Deleted ${badgesResult.rowCount} user badges`);
     
-    // Delete user
-    const userResult = await pool.query('DELETE FROM users WHERE id = $1 RETURNING name', [userId]);
+    console.log('8. Deleting past challenges...');
+    const pastChallengesResult = await client.query('DELETE FROM past_challenges WHERE user_id = $1', [userId]);
+    console.log(`   Deleted ${pastChallengesResult.rowCount} past challenges`);
+    
+    console.log('9. Deleting challenges created by user...');
+    const challengesResult = await client.query('DELETE FROM challenges WHERE created_by = $1', [userId]);
+    console.log(`   Deleted ${challengesResult.rowCount} created challenges`);
+    
+    console.log('10. Deleting user...');
+    const userResult = await client.query('DELETE FROM users WHERE id = $1 RETURNING name', [userId]);
+    console.log(`   Deleted user: ${userResult.rows.length > 0 ? userResult.rows[0].name : 'none found'}`);
     
     if (userResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'User not found' });
     }
+    
+    // Commit transaction
+    await client.query('COMMIT');
     
     console.log(`Successfully deleted user ${userResult.rows[0].name} (ID: ${userId})`);
     res.json({ success: true, deletedUser: userResult.rows[0].name });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Delete user error:', error);
-    res.status(500).json({ error: 'Failed to delete user', details: error.message });
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: 'Failed to delete user', details: error.message, step: error.step || 'unknown' });
+  } finally {
+    client.release();
   }
 });
 
