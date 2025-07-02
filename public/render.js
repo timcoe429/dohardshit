@@ -77,10 +77,23 @@ class Renderer {
     }
 
     renderDashboard() {
-        const todayPoints = this.app.progressManager.getTodayPoints();
-        const completion = this.app.progressManager.getCompletionPercentage();
-        const challengeDay = this.app.challengeManager.getCurrentChallengeDay();
-        const challengeProgress = this.app.challengeManager.getChallengeProgress();
+        // Use StatsService for single source of truth, fallback to old methods
+        const todayPoints = this.app.statsService ? 
+            this.app.statsService.getDailyPoints() : 
+            this.app.progressManager.getTodayPoints();
+        
+        const completion = this.app.statsService ? 
+            this.app.statsService.getTodayCompletion() : 
+            this.app.progressManager.getCompletionPercentage();
+        
+        const challengeDay = this.app.statsService ? 
+            this.app.statsService.getChallengeDays() : 
+            this.app.challengeManager.getCurrentChallengeDay();
+        
+        const challengeProgress = this.app.statsService ? 
+            this.app.statsService.getChallengeProgress() : 
+            this.app.challengeManager.getChallengeProgress();
+        
         const isComplete = this.app.challengeManager.isChallengeComplete();
         
         const challengeDaysText = this.app.activeChallenge ? 
@@ -366,20 +379,26 @@ class Renderer {
     }
     
     updateStats() {
-        const todayPoints = this.app.progressManager.getTodayPoints();
-        const completion = this.app.progressManager.getCompletionPercentage();
-        
-        // Update points in header
-        const headerPoints = document.querySelector('.text-black');
-        if (headerPoints) headerPoints.textContent = `${this.app.currentUser.total_points} points`;
-        
-        // Update today's points card
-        const todayPointsElement = document.querySelector('.grid .text-2xl.text-black');
-        if (todayPointsElement) todayPointsElement.textContent = todayPoints;
-        
-        // Update completion percentage
-        const completionElement = document.querySelector('.text-2xl.text-green-600');
-        if (completionElement) completionElement.textContent = `${completion}%`;
+        // Use StatsService if available, otherwise fallback to old methods
+        if (this.app.statsService) {
+            this.app.statsService.updateAllUI();
+        } else {
+            // Fallback to old method
+            const todayPoints = this.app.progressManager.getTodayPoints();
+            const completion = this.app.progressManager.getCompletionPercentage();
+            
+            // Update points in header
+            const headerPoints = document.querySelector('.text-black');
+            if (headerPoints) headerPoints.textContent = `${this.app.currentUser.total_points} points`;
+            
+            // Update today's points card
+            const todayPointsElement = document.querySelector('.grid .text-2xl.text-black');
+            if (todayPointsElement) todayPointsElement.textContent = todayPoints;
+            
+            // Update completion percentage
+            const completionElement = document.querySelector('.text-2xl.text-green-600');
+            if (completionElement) completionElement.textContent = `${completion}%`;
+        }
     }
     
     async renderNextBadgeProgress() {
@@ -669,7 +688,7 @@ class Renderer {
                 <!-- Quick Stats -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-gray-50 rounded-lg p-4 text-center">
-                        <p class="text-2xl font-bold text-black">${this.app.currentUser.total_points}</p>
+                        <p class="text-2xl font-bold text-black">${this.app.statsService ? this.app.statsService.getTotalPoints() : this.app.currentUser.total_points}</p>
                         <p class="text-xs text-gray-500">Total Points</p>
                     </div>
                     <div class="bg-gray-50 rounded-lg p-4 text-center">
@@ -682,10 +701,10 @@ class Renderer {
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
                     <h4 class="font-bold text-gray-700 mb-2">Current Badge</h4>
                     <div class="flex items-center space-x-3">
-                        <span class="text-2xl">${this.getBadgeIcon(this.app.currentUser.badge_title)}</span>
+                        <span class="text-2xl">${this.app.statsService ? this.app.statsService.getBadgeInfo().icon : this.getBadgeIcon(this.app.currentUser.badge_title)}</span>
                         <div>
-                            <p class="font-medium">${this.app.currentUser.badge_title || 'Lil Bitch'}</p>
-                            <p class="text-xs text-gray-500">Current streak: ${this.app.currentUser.current_streak || 0} days</p>
+                            <p class="font-medium">${this.app.statsService ? this.app.statsService.getBadgeInfo().name : (this.app.currentUser.badge_title || 'Lil Bitch')}</p>
+                            <p class="text-xs text-gray-500">Current streak: ${this.app.statsService ? this.app.statsService.getCurrentStreak() : (this.app.currentUser.current_streak || 0)} days</p>
                         </div>
                     </div>
                 </div>

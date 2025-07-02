@@ -24,6 +24,7 @@ class ChallengeApp {
        this.currentGhosts = [];
        
        // Initialize managers
+       this.statsService = new StatsService(this); // Initialize first - other managers depend on it
        this.authManager = new AuthManager(this);
        this.challengeManager = new ChallengeManager(this);
        this.progressManager = new ProgressManager(this);

@@ -134,9 +134,15 @@ class AuthManager {
             // Debug badge system
             console.log('Checking badges for user:', user.id);
             
-            // Add a small delay to ensure everything is loaded
+            // Initialize StatsService and sync all data
             setTimeout(async () => {
                 try {
+                    // Initialize StatsService with fresh data
+                    if (this.app.statsService) {
+                        await this.app.statsService.syncAllStats();
+                        console.log('✅ StatsService initialized with fresh data');
+                    }
+                    
                     // First, check the debug endpoint
                     const debugResponse = await fetch(`/api/users/${user.id}/streak-debug`);
                     if (debugResponse.ok) {
@@ -159,6 +165,11 @@ class AuthManager {
                             badgeData.newBadges.forEach(badge => {
                                 this.app.progressManager.showBadgeNotification(badge);
                             });
+                            
+                            // Sync stats after badge changes
+                            if (this.app.statsService) {
+                                await this.app.statsService.onBadgeEarned();
+                            }
                         }
                         
                         // Update theme based on badges

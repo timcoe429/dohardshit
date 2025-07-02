@@ -144,29 +144,34 @@ class ProgressManager {
                 newState
             );
             
-            // Sync user points from server to ensure accuracy
-            try {
-                const userResponse = await fetch(`/api/users/${this.app.currentUser.id}`);
-                if (userResponse.ok) {
-                    const userData = await userResponse.json();
-                    this.app.currentUser.total_points = userData.total_points;
-                    console.log(`Synced total_points from server: ${userData.total_points}`);
-                    
-                    // Update all point displays everywhere
+            // Use the centralized StatsService to sync everything
+            if (this.app.statsService) {
+                await this.app.statsService.onTaskCompleted();
+            } else {
+                // Fallback to old method if StatsService not available
+                try {
+                    const userResponse = await fetch(`/api/users/${this.app.currentUser.id}`);
+                    if (userResponse.ok) {
+                        const userData = await userResponse.json();
+                        this.app.currentUser.total_points = userData.total_points;
+                        console.log(`Synced total_points from server: ${userData.total_points}`);
+                        
+                        // Update all point displays everywhere
+                        this.updateAllPointDisplays();
+                        
+                        // Also refresh leaderboard to ensure consistency
+                        await this.app.leaderboardManager.loadLeaderboard();
+                    }
+                } catch (err) {
+                    console.error('Failed to sync user points:', err);
+                    // Fallback to local calculation
+                    if (newState) {
+                        this.app.currentUser.total_points++;
+                    } else {
+                        this.app.currentUser.total_points = Math.max(0, this.app.currentUser.total_points - 1);
+                    }
                     this.updateAllPointDisplays();
-                    
-                    // Also refresh leaderboard to ensure consistency
-                    await this.app.leaderboardManager.loadLeaderboard();
                 }
-            } catch (err) {
-                console.error('Failed to sync user points:', err);
-                // Fallback to local calculation
-                if (newState) {
-                    this.app.currentUser.total_points++;
-                } else {
-                    this.app.currentUser.total_points = Math.max(0, this.app.currentUser.total_points - 1);
-                }
-                this.updateAllPointDisplays();
             }
             
             // Check for new badges only when completing a goal
@@ -184,6 +189,11 @@ class ProgressManager {
                         this.app.updateTheme();
                         // Update badge progress display
                         this.app.renderer.renderNextBadgeProgress();
+                        
+                        // Notify StatsService about badge change
+                        if (this.app.statsService) {
+                            await this.app.statsService.onBadgeEarned();
+                        }
                     }
                 } catch (err) {
                     console.error('Badge check error:', err);

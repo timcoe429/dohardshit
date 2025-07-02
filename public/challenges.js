@@ -53,6 +53,12 @@ class ChallengeManager {
                     this.app.activeChallenge = challenge;
                     this.app.hideCreateChallengeModal();
                     await this.app.progressManager.initTodayProgress();
+                    
+                    // Notify StatsService about new challenge
+                    if (this.app.statsService) {
+                        await this.app.statsService.onChallengeChanged();
+                    }
+                    
                     this.app.render();
                 }
             } catch (err) {
@@ -148,6 +154,11 @@ class ChallengeManager {
             this.app.activeChallenge = null;
             this.app.currentUser.total_points = 0;
             this.app.userStats.totalPoints = 0;
+            
+            // Notify StatsService about challenge completion
+            if (this.app.statsService) {
+                await this.app.statsService.onChallengeChanged();
+            }
             
             console.log('Challenge archived successfully');
             
