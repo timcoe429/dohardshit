@@ -192,6 +192,11 @@ class EventHandler {
             // Load specific tab content
             if (tabName === 'stats') {
                 this.loadMiniLeaderboard();
+                
+                // Force refresh personal stats to ensure latest data
+                if (this.app.statsService) {
+                    this.app.statsService.forceRefreshPersonalStatsTab();
+                }
             }
         }
     }

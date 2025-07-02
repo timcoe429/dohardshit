@@ -38,6 +38,8 @@ class ChallengeApp {
        
        // Make app globally accessible
        window.app = this;
+       // Make statsService globally accessible for debugging
+       window.stats = this.statsService;
    }
 
        async init() {
@@ -398,11 +400,15 @@ class ChallengeApp {
        
        // Add current user with their total points (not just current challenge)
        if (this.activeChallenge && this.currentUser) {
+           // Use StatsService for consistent data
+           const totalPoints = this.statsService ? this.statsService.getTotalPoints() : this.currentUser.total_points;
+           const badgeInfo = this.statsService ? this.statsService.getBadgeInfo() : { name: this.currentUser.badge_title || 'Lil Bitch' };
+           
            combinedUsers.push({
                name: this.currentUser.username || this.currentUser.name || 'You',
-               points: this.currentUser.total_points, // Use total_points instead of current challenge points
+               points: totalPoints,
                type: 'user',
-               badge_title: this.currentUser.badge_title || 'Lil Bitch'
+               badge_title: badgeInfo.name
            });
        }
        

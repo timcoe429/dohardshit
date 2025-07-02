@@ -249,10 +249,16 @@ class StatsService {
             `;
         }
 
-        // Update badge in personal stats tab
-        const personalStatsBadge = document.querySelector('.renderPersonalStatsTab .text-2xl');
-        if (personalStatsBadge) {
-            personalStatsBadge.textContent = badgeInfo.icon;
+        // Update badge in personal stats tab - use more specific selectors
+        const personalStatsTabBadge = document.querySelector('#statsTab .bg-white .text-2xl');
+        if (personalStatsTabBadge) {
+            personalStatsTabBadge.textContent = badgeInfo.icon;
+        }
+        
+        // Update badge name in personal stats tab
+        const personalStatsTabBadgeName = document.querySelector('#statsTab .bg-white .font-medium');
+        if (personalStatsTabBadgeName) {
+            personalStatsTabBadgeName.textContent = badgeInfo.name;
         }
     }
 
@@ -270,9 +276,25 @@ class StatsService {
 
     updatePersonalStatsTab() {
         // Update total points in personal stats
-        const personalStatsPoints = document.querySelector('.renderPersonalStatsTab .text-2xl.text-black');
+        const personalStatsPoints = document.querySelector('#statsTab .bg-gray-50 .text-2xl.text-black');
         if (personalStatsPoints) {
             personalStatsPoints.textContent = this.getTotalPoints();
+        }
+        
+        // Update current streak in personal stats tab
+        const personalStatsStreak = document.querySelector('#statsTab .text-xs.text-gray-500');
+        if (personalStatsStreak && personalStatsStreak.textContent.includes('Current streak:')) {
+            personalStatsStreak.textContent = `Current streak: ${this.getCurrentStreak()} days`;
+        }
+    }
+
+    // Force refresh the personal stats tab content
+    forceRefreshPersonalStatsTab() {
+        const statsTab = document.getElementById('statsTab');
+        if (statsTab && !statsTab.classList.contains('hidden')) {
+            // Personal stats tab is currently visible, update it
+            this.updateBadgeDisplays();
+            this.updatePersonalStatsTab();
         }
     }
 
@@ -288,6 +310,12 @@ class StatsService {
     async onBadgeEarned() {
         console.log('🏆 Badge earned - syncing stats...');
         await this.syncAllStats();
+        
+        // Force a complete UI refresh after badge changes
+        setTimeout(() => {
+            this.forceRefreshPersonalStatsTab();
+            this.updateAllUI();
+        }, 100);
     }
 
     async onChallengeChanged() {
@@ -310,5 +338,24 @@ class StatsService {
     forceRefresh() {
         this.lastUpdate = 0;
         return this.syncAllStats();
+    }
+
+    // Debug method - accessible from console
+    debugStats() {
+        console.log('📊 Current Stats:', this.stats);
+        console.log('📊 Badge Info:', this.getBadgeInfo());
+        console.log('📊 Is Data Fresh:', this.isDataFresh());
+        console.log('📊 Last Update:', new Date(this.lastUpdate));
+        return this.stats;
+    }
+
+    // Manual sync method for console debugging  
+    async debugSync() {
+        console.log('🔄 Manual sync triggered...');
+        await this.syncAllStats();
+        this.updateAllUI();
+        this.forceRefreshPersonalStatsTab();
+        console.log('✅ Manual sync complete');
+        return this.debugStats();
     }
 } 
