@@ -35,7 +35,7 @@ class StatsService {
         }
         this.lastUpdate = now;
         
-        console.log('🔄 Starting full stats sync...');
+        // PROGRESS BAR DEBUG - Starting sync
         
         try {
             // First sync the active challenge
@@ -49,7 +49,8 @@ class StatsService {
             ]);
             
             this.updateAllUI();
-            console.log('✅ Full stats sync complete', this.stats);
+            // PROGRESS BAR DEBUG - Sync complete
+            console.log('✅ SYNC COMPLETE');
         } catch (error) {
             console.error('Stats sync error:', error);
         }
@@ -79,10 +80,8 @@ class StatsService {
                 this.stats.dailyPoints = this.calculateDailyPoints();
                 this.stats.todayCompletion = this.calculateTodayCompletion();
                 
-                console.log('📊 Challenge stats calculated:', {
-                    days: this.stats.challengeDays,
-                    progress: this.stats.challengeProgress
-                });
+                // PROGRESS BAR DEBUG - Stats stored (existing challenge)
+                console.log('📊 STATS STORED:', { days: this.stats.challengeDays, progress: this.stats.challengeProgress });
                 return;
             }
             
@@ -110,10 +109,8 @@ class StatsService {
                 this.stats.dailyPoints = this.calculateDailyPoints();
                 this.stats.todayCompletion = this.calculateTodayCompletion();
                 
-                console.log('📊 Challenge stats calculated:', {
-                    days: this.stats.challengeDays,
-                    progress: this.stats.challengeProgress
-                });
+                // PROGRESS BAR DEBUG - Stats stored (loaded challenge)
+                console.log('📊 STATS STORED:', { days: this.stats.challengeDays, progress: this.stats.challengeProgress });
             } else {
                 this.app.activeChallenge = null;
                 this.stats.challengeDays = 0;
@@ -158,13 +155,8 @@ class StatsService {
         // Ensure minimum day 1, maximum duration
         const finalDay = Math.max(1, Math.min(dayDiff, this.app.activeChallenge.duration));
         
-        console.log('📅 StatsService Challenge Day Calculation:', {
-            challengeName: this.app.activeChallenge.name,
-            createdAt: createdAt.toISOString(),
-            dayDiff: dayDiff,
-            finalDay: finalDay,
-            duration: this.app.activeChallenge.duration
-        });
+        // PROGRESS BAR DEBUG - Day calculation
+        console.log('📅 DAY CALC:', { challengeName: this.app.activeChallenge.name, dayDiff, finalDay });
         
         return finalDay;
     }
@@ -177,12 +169,8 @@ class StatsService {
         const totalDays = this.app.activeChallenge.duration;
         const progress = Math.round((currentDay / totalDays) * 100);
         
-        console.log('📊 StatsService Challenge Progress:', {
-            currentDay,
-            totalDays,
-            progress: `${progress}%`,
-            challengeName: this.app.activeChallenge.name
-        });
+        // PROGRESS BAR DEBUG - Progress calculation  
+        console.log('📊 PROGRESS CALC:', { currentDay, totalDays, progress });
         
         return Math.min(progress, 100); // Cap at 100%
     }
