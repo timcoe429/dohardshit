@@ -90,12 +90,12 @@ class Renderer {
             this.app.statsService.getChallengeDays() : 
             this.app.challengeManager.getCurrentChallengeDay();
         
-        // PROGRESS BAR DEBUG - What values are being rendered?
-        console.log('📊 RENDER VALUES:', { challengeDay, challengeProgress, challengeName: this.app.activeChallenge?.name });
-        
         const challengeProgress = this.app.statsService ? 
             this.app.statsService.getChallengeProgress() : 
             this.app.challengeManager.getChallengeProgress();
+        
+        // PROGRESS BAR DEBUG - What values are being rendered?
+        console.log('📊 RENDER VALUES:', { challengeDay, challengeProgress, challengeName: this.app.activeChallenge?.name });
         
         const isComplete = this.app.challengeManager.isChallengeComplete();
         
