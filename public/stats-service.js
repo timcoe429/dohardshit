@@ -289,6 +289,27 @@ class StatsService {
                 el.textContent = challengeDaysText;
             }
         });
+        
+        // PROGRESS BAR FIX: Update the progress bar text and width
+        if (this.app.activeChallenge) {
+            const challengeDay = this.getChallengeDays();
+            const challengeProgress = this.getChallengeProgress();
+            const duration = this.app.activeChallenge.duration;
+            
+            // Update progress bar text
+            const progressText = document.querySelector('.text-sm.text-gray-600');
+            if (progressText && progressText.textContent.includes('Day')) {
+                progressText.textContent = `Day ${challengeDay} of ${duration} • ${challengeProgress}% complete`;
+            }
+            
+            // Update progress bar width
+            const progressBar = document.querySelector('.bg-black.h-2.rounded-full');
+            if (progressBar) {
+                progressBar.style.width = `${challengeProgress}%`;
+            }
+            
+            console.log('📊 PROGRESS BAR UPDATED:', { challengeDay, challengeProgress, duration });
+        }
     }
 
     updateBadgeDisplays() {

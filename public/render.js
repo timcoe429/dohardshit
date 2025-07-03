@@ -97,6 +97,12 @@ class Renderer {
         // PROGRESS BAR DEBUG - What values are being rendered?
         console.log('📊 RENDER VALUES:', { challengeDay, challengeProgress, challengeName: this.app.activeChallenge?.name });
         
+        // PROGRESS BAR DEBUG - What's actually going into the HTML?
+        console.log('📊 HTML VALUES:', { 
+            progressText: `Day ${challengeDay} of ${this.app.activeChallenge?.duration} • ${challengeProgress}% complete`,
+            progressBarWidth: `${challengeProgress}%`
+        });
+        
         const isComplete = this.app.challengeManager.isChallengeComplete();
         
         const challengeDaysText = this.app.activeChallenge ? 
