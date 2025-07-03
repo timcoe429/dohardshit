@@ -94,17 +94,8 @@ class Renderer {
             this.app.statsService.getChallengeProgress() : 
             this.app.challengeManager.getChallengeProgress();
         
-        // PROGRESS BAR DEBUG - What values are being rendered?
-        console.log('📊 RENDER VALUES:', { challengeDay, challengeProgress, challengeName: this.app.activeChallenge?.name });
-        
-        // PROGRESS BAR DEBUG - What's actually going into the HTML?
-        console.log('📊 HTML VALUES:', { 
-            progressText: `Day ${challengeDay} of ${this.app.activeChallenge?.duration} • ${challengeProgress}% complete`,
-            progressBarWidth: `${challengeProgress}%`
-        });
-        
-        // PROGRESS BAR DEBUG - Track render calls
-        console.log('📊 RENDER CALL:', new Date().toISOString());
+        // PROGRESS BAR DEBUG - Final render values
+        console.log('📊 RENDERING DASHBOARD:', { challengeDay, challengeProgress, challengeName: this.app.activeChallenge?.name });
         
         const isComplete = this.app.challengeManager.isChallengeComplete();
         

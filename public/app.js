@@ -89,7 +89,7 @@ class ChallengeApp {
             }
 
             // Only render AFTER stats are synced
-            this.renderer.renderDashboard();
+            this.render(); // This will update the DOM with correct data
             this.eventHandler.attachDashboardEvents();
         }
     }
