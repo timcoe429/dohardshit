@@ -16,6 +16,7 @@ class StatsService {
             totalChallenges: 0,
             completedGoals: 0
         };
+        console.log('📊 STATS OBJECT INITIALIZED:', this.stats);
         
         // Cache for optimizing frequent updates
         this.lastUpdate = 0;
@@ -195,10 +196,12 @@ class StatsService {
     }
 
     getChallengeDays() {
+        console.log('📊 GETTER DEBUG - getChallengeDays():', this.stats.challengeDays);
         return this.stats.challengeDays;
     }
 
     getChallengeProgress() {
+        console.log('📊 GETTER DEBUG - getChallengeProgress():', this.stats.challengeProgress);
         return this.stats.challengeProgress;
     }
 
