@@ -393,20 +393,20 @@ class Renderer {
             this.app.statsService.updateAllUI();
         } else {
             // Fallback to old method
-            const todayPoints = this.app.progressManager.getTodayPoints();
-            const completion = this.app.progressManager.getCompletionPercentage();
-            
-            // Update points in header
-            const headerPoints = document.querySelector('.text-black');
-            if (headerPoints) headerPoints.textContent = `${this.app.currentUser.total_points} points`;
-            
-            // Update today's points card
-            const todayPointsElement = document.querySelector('.grid .text-2xl.text-black');
-            if (todayPointsElement) todayPointsElement.textContent = todayPoints;
-            
-            // Update completion percentage
-            const completionElement = document.querySelector('.text-2xl.text-green-600');
-            if (completionElement) completionElement.textContent = `${completion}%`;
+        const todayPoints = this.app.progressManager.getTodayPoints();
+        const completion = this.app.progressManager.getCompletionPercentage();
+        
+        // Update points in header
+        const headerPoints = document.querySelector('.text-black');
+        if (headerPoints) headerPoints.textContent = `${this.app.currentUser.total_points} points`;
+        
+        // Update today's points card
+        const todayPointsElement = document.querySelector('.grid .text-2xl.text-black');
+        if (todayPointsElement) todayPointsElement.textContent = todayPoints;
+        
+        // Update completion percentage
+        const completionElement = document.querySelector('.text-2xl.text-green-600');
+        if (completionElement) completionElement.textContent = `${completion}%`;
         }
     }
     

@@ -53,7 +53,9 @@ class ChallengeApp {
             // Load initial data
             await this.loadUserData();
             await this.challengeManager.loadChallenges(this.currentUser.id);
-            await this.loadPastChallenges();
+            if (this.currentUser?.id) {
+                this.pastChallenges = await this.challengeManager.loadPastChallenges(this.currentUser.id);
+            }
             
             // Update ghost challengers (catch-up mechanism)
             if (this.currentUser) {

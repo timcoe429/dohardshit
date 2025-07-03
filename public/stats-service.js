@@ -125,7 +125,20 @@ class StatsService {
 
     calculateChallengeProgress() {
         if (!this.app.activeChallenge) return 0;
-        return this.app.challengeManager?.getChallengeProgress() || 0;
+        
+        // Calculate progress based on current day vs total duration
+        const currentDay = this.calculateChallengeDays();
+        const totalDays = this.app.activeChallenge.duration;
+        const progress = Math.round((currentDay / totalDays) * 100);
+        
+        console.log('📊 Challenge Progress Calculation:', {
+            currentDay,
+            totalDays,
+            progress: `${progress}%`,
+            challengeName: this.app.activeChallenge.name
+        });
+        
+        return Math.min(progress, 100); // Cap at 100%
     }
 
     calculateTodayCompletion() {
