@@ -80,18 +80,19 @@ class ProgressManager {
         console.log('Final dailyProgress for today:', this.app.dailyProgress[today]);
     }
 
-    // Helper method to get EST/EDT date
+    // Helper method to get local date (matching challenge day calculation)
     getESTDate() {
-        // Create a date in Eastern Time
-        const easternTime = new Date().toLocaleString("en-US", {timeZone: "America/New_York"});
-        const etDate = new Date(easternTime);
+        // Use local timezone to match challenge day calculation
+        const now = new Date();
         
-        // Format as YYYY-MM-DD
-        const year = etDate.getFullYear();
-        const month = String(etDate.getMonth() + 1).padStart(2, '0');
-        const day = String(etDate.getDate()).padStart(2, '0');
+        // Format as YYYY-MM-DD in local timezone
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
         
-        return `${year}-${month}-${day}`;
+        const dateStr = `${year}-${month}-${day}`;
+        console.log('📅 Progress date (local):', dateStr);
+        return dateStr;
     }
     
     getTodayProgress() {

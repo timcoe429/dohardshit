@@ -27,58 +27,31 @@ class StatsService {
     // ==========================================
 
     async syncAllStats() {
+        // Add throttling to prevent excessive API calls
+        const now = Date.now();
+        if (now - this.lastUpdate < this.updateThrottle) {
+            console.log('⏳ Stats sync throttled');
+            return;
+        }
+        this.lastUpdate = now;
+        
+        console.log('🔄 Starting full stats sync...');
+        
         try {
-            console.log('🔄 Syncing all stats from server...');
+            // First sync the active challenge
+            await this.syncActiveChallenge();
             
-            // Get fresh user data
-            const userResponse = await fetch(`/api/users/${this.app.currentUser.id}`);
-            if (!userResponse.ok) throw new Error('Failed to fetch user data');
-            const userData = await userResponse.json();
+            // Then sync points and other stats that depend on having the challenge loaded
+            await Promise.all([
+                this.syncPoints(),
+                this.syncBadges(),
+                this.syncRank()
+            ]);
             
-            // Get user stats
-            const statsResponse = await fetch(`/api/users/${this.app.currentUser.id}/stats`);
-            if (!statsResponse.ok) throw new Error('Failed to fetch user stats');
-            const statsData = await statsResponse.json();
-            
-            // Get current badge
-            const badgeResponse = await fetch(`/api/users/${this.app.currentUser.id}/current-theme`);
-            const badgeData = badgeResponse.ok ? await badgeResponse.json() : null;
-            
-            // Update our single source of truth
-            this.stats.totalPoints = userData.total_points || 0;
-            this.stats.dailyPoints = this.calculateDailyPoints();
-            this.stats.challengeDays = this.calculateChallengeDays();
-            this.stats.challengeProgress = this.calculateChallengeProgress();
-            this.stats.todayCompletion = this.calculateTodayCompletion();
-            this.stats.currentBadge = badgeData;
-            this.stats.currentStreak = statsData.current_streak || 0;
-            this.stats.rank = statsData.rank || 0;
-            this.stats.totalChallenges = statsData.total_challenges || 0;
-            this.stats.completedGoals = statsData.total_completed_goals || 0;
-            
-            // Update the currentUser object to maintain compatibility
-            this.app.currentUser.total_points = this.stats.totalPoints;
-            this.app.currentUser.badge_title = badgeData ? badgeData.name : 'Lil Bitch';
-            this.app.currentUser.current_streak = this.stats.currentStreak;
-            
-            // Update userStats object to maintain compatibility
-            this.app.userStats = {
-                totalPoints: this.stats.totalPoints,
-                rank: this.stats.rank,
-                total_challenges: this.stats.totalChallenges,
-                total_completed_goals: this.stats.completedGoals,
-                current_streak: this.stats.currentStreak
-            };
-            
-            console.log('✅ Stats synced:', this.stats);
-            
-            // Update all UI elements
             this.updateAllUI();
-            
-            this.lastUpdate = Date.now();
-            
-        } catch (err) {
-            console.error('❌ Failed to sync stats:', err);
+            console.log('✅ Full stats sync complete', this.stats);
+        } catch (error) {
+            console.error('Stats sync error:', error);
         }
     }
 
@@ -90,6 +63,47 @@ class StatsService {
         }
         
         await this.syncAllStats();
+    }
+
+    async syncActiveChallenge() {
+        try {
+            if (!this.app.currentUser) return;
+            
+            // Get user's challenges
+            const challenges = await this.app.challengeManager.loadChallenges(this.app.currentUser.id);
+            
+            // Find the active challenge (not completed)
+            const activeChallenge = challenges.find(c => {
+                const createdAt = new Date(c.created_at);
+                const now = new Date();
+                const daysPassed = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+                return daysPassed < c.duration;
+            });
+            
+            if (activeChallenge) {
+                this.app.activeChallenge = activeChallenge;
+                console.log('📋 Active challenge loaded:', activeChallenge.name);
+                
+                // Initialize today's progress for the active challenge
+                await this.app.progressManager.initTodayProgress();
+                
+                // Update challenge-related stats
+                this.stats.challengeDays = this.app.challengeManager.getCurrentChallengeDay();
+                this.stats.challengeProgress = this.app.challengeManager.getChallengeProgress();
+                
+                console.log('📊 Challenge stats updated:', {
+                    days: this.stats.challengeDays,
+                    progress: this.stats.challengeProgress
+                });
+            } else {
+                this.app.activeChallenge = null;
+                this.stats.challengeDays = 0;
+                this.stats.challengeProgress = 0;
+                console.log('⚠️ No active challenge found');
+            }
+        } catch (error) {
+            console.error('Failed to sync active challenge:', error);
+        }
     }
 
     // ==========================================
@@ -387,4 +401,78 @@ class StatsService {
         console.log('✅ Manual sync complete');
         return this.debugStats();
     }
+
+    async syncPoints() {
+        try {
+            const userResponse = await fetch(`/api/users/${this.app.currentUser.id}`);
+            if (!userResponse.ok) throw new Error('Failed to fetch user data');
+            const userData = await userResponse.json();
+            
+            this.stats.totalPoints = userData.total_points || 0;
+            this.stats.dailyPoints = this.calculateDailyPoints();
+            this.stats.todayCompletion = this.calculateTodayCompletion();
+            
+            // Update the currentUser object to maintain compatibility
+            this.app.currentUser.total_points = this.stats.totalPoints;
+            
+            console.log('💰 Points synced:', {
+                total: this.stats.totalPoints,
+                daily: this.stats.dailyPoints
+            });
+        } catch (error) {
+            console.error('Failed to sync points:', error);
+        }
+    }
+    
+    async syncBadges() {
+        try {
+            const badgeResponse = await fetch(`/api/users/${this.app.currentUser.id}/current-theme`);
+            const badgeData = badgeResponse.ok ? await badgeResponse.json() : null;
+            
+            this.stats.currentBadge = badgeData;
+            
+            // Update the currentUser object to maintain compatibility
+            this.app.currentUser.badge_title = badgeData ? badgeData.name : 'Lil Bitch';
+            
+            console.log('🏅 Badge synced:', badgeData?.name || 'None');
+        } catch (error) {
+            console.error('Failed to sync badges:', error);
+        }
+    }
+    
+    async syncRank() {
+        try {
+            const statsResponse = await fetch(`/api/users/${this.app.currentUser.id}/stats`);
+            if (!statsResponse.ok) throw new Error('Failed to fetch user stats');
+            const statsData = await statsResponse.json();
+            
+            this.stats.currentStreak = statsData.current_streak || 0;
+            this.stats.rank = statsData.rank || 0;
+            this.stats.totalChallenges = statsData.total_challenges || 0;
+            this.stats.completedGoals = statsData.total_completed_goals || 0;
+            
+            // Update the currentUser object to maintain compatibility
+            this.app.currentUser.current_streak = this.stats.currentStreak;
+            
+            // Update userStats object to maintain compatibility
+            this.app.userStats = {
+                totalPoints: this.stats.totalPoints,
+                rank: this.stats.rank,
+                total_challenges: this.stats.totalChallenges,
+                total_completed_goals: this.stats.completedGoals,
+                current_streak: this.stats.currentStreak
+            };
+            
+            console.log('📊 Rank/Stats synced:', {
+                rank: this.stats.rank,
+                streak: this.stats.currentStreak
+            });
+        } catch (error) {
+            console.error('Failed to sync rank:', error);
+        }
+    }
+
+    // ==========================================
+    // CALCULATION METHODS (Server Data Processing)
+    // ==========================================
 } 

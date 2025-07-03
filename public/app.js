@@ -52,9 +52,27 @@ class ChallengeApp {
         } else {
             // Load initial data
             await this.loadUserData();
-            await this.challengeManager.loadChallenges(this.currentUser.id);
+            
+            // IMPORTANT: Load challenges first (stats service needs them)
+            const challenges = await this.challengeManager.loadChallenges(this.currentUser.id);
+            this.challenges = challenges;
+            
+            // Find and set active challenge (if any)
+            const activeChallenge = challenges.find(c => {
+                const createdAt = new Date(c.created_at);
+                const now = new Date();
+                const daysPassed = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+                return daysPassed < c.duration;
+            });
+            this.activeChallenge = activeChallenge;
+            
             if (this.currentUser?.id) {
                 this.pastChallenges = await this.challengeManager.loadPastChallenges(this.currentUser.id);
+            }
+            
+            // Initialize today's progress if there's an active challenge
+            if (this.activeChallenge) {
+                await this.progressManager.initTodayProgress();
             }
             
             // Update ghost challengers (catch-up mechanism)
@@ -62,13 +80,15 @@ class ChallengeApp {
                 await this.updateAllGhosts();
             }
 
-            // Force fresh stats sync to ensure everything is current
+            // CRITICAL: Force fresh stats sync BEFORE rendering
             if (this.statsService) {
+                console.log('🔄 Forcing stats sync on page refresh...');
                 this.statsService.lastUpdate = 0; // Force fresh sync
                 await this.statsService.syncAllStats();
-                console.log('🔄 Forced stats refresh on auto-login');
+                console.log('✅ Stats synced, now rendering dashboard');
             }
 
+            // Only render AFTER stats are synced
             this.renderer.renderDashboard();
             this.eventHandler.attachDashboardEvents();
         }
