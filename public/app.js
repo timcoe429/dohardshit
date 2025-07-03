@@ -60,9 +60,11 @@ class ChallengeApp {
                 await this.updateAllGhosts();
             }
 
-            // Sync stats before rendering to ensure correct display
+            // Force fresh stats sync to ensure everything is current
             if (this.statsService) {
+                this.statsService.lastUpdate = 0; // Force fresh sync
                 await this.statsService.syncAllStats();
+                console.log('🔄 Forced stats refresh on auto-login');
             }
 
             this.renderer.renderDashboard();

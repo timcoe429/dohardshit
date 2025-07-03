@@ -139,8 +139,9 @@ class AuthManager {
                 try {
                     // Initialize StatsService with fresh data
                     if (this.app.statsService) {
+                        this.app.statsService.lastUpdate = 0; // Force fresh sync
                         await this.app.statsService.syncAllStats();
-                        console.log('✅ StatsService initialized with fresh data');
+                        console.log('✅ StatsService initialized with fresh data (forced refresh)');
                     }
                     
                     // First, check the debug endpoint
