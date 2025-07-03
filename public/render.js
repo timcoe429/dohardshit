@@ -103,6 +103,9 @@ class Renderer {
             progressBarWidth: `${challengeProgress}%`
         });
         
+        // PROGRESS BAR DEBUG - Track render calls
+        console.log('📊 RENDER CALL:', new Date().toISOString());
+        
         const isComplete = this.app.challengeManager.isChallengeComplete();
         
         const challengeDaysText = this.app.activeChallenge ? 

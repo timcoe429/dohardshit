@@ -309,6 +309,7 @@ class StatsService {
             }
             
             console.log('📊 PROGRESS BAR UPDATED:', { challengeDay, challengeProgress, duration });
+            console.log('📊 UPDATE CALL:', new Date().toISOString());
         }
     }
 
