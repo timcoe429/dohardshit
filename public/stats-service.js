@@ -69,7 +69,24 @@ class StatsService {
         try {
             if (!this.app.currentUser) return;
             
-            // Get user's challenges
+            // If we already have an active challenge loaded, just recalculate stats
+            if (this.app.activeChallenge) {
+                console.log('📋 Using existing active challenge:', this.app.activeChallenge.name);
+                
+                // Calculate and store the stats
+                this.stats.challengeDays = this.calculateChallengeDays();
+                this.stats.challengeProgress = this.calculateChallengeProgress();
+                this.stats.dailyPoints = this.calculateDailyPoints();
+                this.stats.todayCompletion = this.calculateTodayCompletion();
+                
+                console.log('📊 Challenge stats calculated:', {
+                    days: this.stats.challengeDays,
+                    progress: this.stats.challengeProgress
+                });
+                return;
+            }
+            
+            // No active challenge loaded yet, try to find one
             const challenges = await this.app.challengeManager.loadChallenges(this.app.currentUser.id);
             
             // Find the active challenge (not completed)
@@ -87,11 +104,13 @@ class StatsService {
                 // Initialize today's progress for the active challenge
                 await this.app.progressManager.initTodayProgress();
                 
-                // Update challenge-related stats
-                this.stats.challengeDays = this.app.challengeManager.getCurrentChallengeDay();
-                this.stats.challengeProgress = this.app.challengeManager.getChallengeProgress();
+                // Calculate and store the stats
+                this.stats.challengeDays = this.calculateChallengeDays();
+                this.stats.challengeProgress = this.calculateChallengeProgress();
+                this.stats.dailyPoints = this.calculateDailyPoints();
+                this.stats.todayCompletion = this.calculateTodayCompletion();
                 
-                console.log('📊 Challenge stats updated:', {
+                console.log('📊 Challenge stats calculated:', {
                     days: this.stats.challengeDays,
                     progress: this.stats.challengeProgress
                 });
@@ -121,20 +140,33 @@ class StatsService {
     calculateChallengeDays() {
         if (!this.app.activeChallenge) return 0;
         
-        const isComplete = this.app.challengeManager?.isChallengeComplete() || false;
-        if (isComplete) return 0;
+        const createdAt = new Date(this.app.activeChallenge.created_at);
+        const now = new Date();
         
-        const currentDay = this.app.challengeManager?.getCurrentChallengeDay() || 1;
-        console.log('🗓️ Challenge Days Debug:', {
-            hasActiveChallenge: !!this.app.activeChallenge,
-            isComplete,
-            currentDay,
-            challengeName: this.app.activeChallenge?.name,
-            createdAt: this.app.activeChallenge?.created_at
+        // Simplified calculation - just use local timezone
+        // Set both to midnight for fair day comparison
+        const createdDay = new Date(createdAt);
+        createdDay.setHours(0, 0, 0, 0);
+        
+        const currentDay = new Date(now);
+        currentDay.setHours(0, 0, 0, 0);
+        
+        // Calculate difference in days
+        const timeDiff = currentDay.getTime() - createdDay.getTime();
+        const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
+        
+        // Ensure minimum day 1, maximum duration
+        const finalDay = Math.max(1, Math.min(dayDiff, this.app.activeChallenge.duration));
+        
+        console.log('📅 StatsService Challenge Day Calculation:', {
+            challengeName: this.app.activeChallenge.name,
+            createdAt: createdAt.toISOString(),
+            dayDiff: dayDiff,
+            finalDay: finalDay,
+            duration: this.app.activeChallenge.duration
         });
         
-        // Ensure we never show Day 0 - minimum should be Day 1
-        return Math.max(currentDay, 1);
+        return finalDay;
     }
 
     calculateChallengeProgress() {
@@ -145,7 +177,7 @@ class StatsService {
         const totalDays = this.app.activeChallenge.duration;
         const progress = Math.round((currentDay / totalDays) * 100);
         
-        console.log('📊 Challenge Progress Calculation:', {
+        console.log('📊 StatsService Challenge Progress:', {
             currentDay,
             totalDays,
             progress: `${progress}%`,
@@ -175,14 +207,7 @@ class StatsService {
     }
 
     getChallengeDays() {
-        // Ensure we never return 0 for an active challenge
-        const challengeDays = Math.max(this.stats.challengeDays, 1);
-        console.log('📊 StatsService getChallengeDays:', {
-            rawStats: this.stats.challengeDays,
-            finalValue: challengeDays,
-            hasActiveChallenge: !!this.app.activeChallenge
-        });
-        return challengeDays;
+        return this.stats.challengeDays;
     }
 
     getChallengeProgress() {

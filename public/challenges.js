@@ -69,56 +69,21 @@ class ChallengeManager {
     }
     
     getCurrentChallengeDay() {
-        if (!this.app.activeChallenge) return 1;
-        
-        const createdAt = new Date(this.app.activeChallenge.created_at);
-        const now = new Date();
-        
-        // Simplified calculation - just use local timezone
-        // Set both to midnight for fair day comparison
-        const createdDay = new Date(createdAt);
-        createdDay.setHours(0, 0, 0, 0);
-        
-        const currentDay = new Date(now);
-        currentDay.setHours(0, 0, 0, 0);
-        
-        // Calculate difference in days
-        const timeDiff = currentDay.getTime() - createdDay.getTime();
-        const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
-        
-        console.log('📅 Challenge Day Calculation (Simplified):', {
-            challengeName: this.app.activeChallenge.name,
-            createdAt: createdAt.toISOString(),
-            createdDay: createdDay.toISOString(),
-            now: now.toISOString(),
-            currentDay: currentDay.toISOString(),
-            timeDiff: timeDiff,
-            dayDiff: dayDiff,
-            duration: this.app.activeChallenge.duration
-        });
-        
-        // Ensure minimum day 1, maximum duration
-        const finalDay = Math.max(1, Math.min(dayDiff, this.app.activeChallenge.duration));
-        
-        console.log('📅 Final Current Day:', finalDay);
-        return finalDay;
+        // Use StatsService as the single source of truth
+        if (this.app.statsService) {
+            return this.app.statsService.getChallengeDays();
+        }
+        // Fallback if StatsService not available (shouldn't happen)
+        return 1;
     }
     
     getChallengeProgress() {
-        if (!this.app.activeChallenge) return 0;
-        
-        // Calculate overall challenge progress based on days completed
-        const currentDay = this.getCurrentChallengeDay();
-        const dayProgress = Math.round((currentDay / this.app.activeChallenge.duration) * 100);
-        
-        console.log('📊 Challenge Progress Calculation:', {
-            currentDay,
-            duration: this.app.activeChallenge.duration,
-            dayProgress,
-            challengeName: this.app.activeChallenge.name
-        });
-        
-        return dayProgress;
+        // Use StatsService as the single source of truth
+        if (this.app.statsService) {
+            return this.app.statsService.getChallengeProgress();
+        }
+        // Fallback if StatsService not available (shouldn't happen)
+        return 0;
     }
     
     getChallengeStatus() {
