@@ -74,6 +74,15 @@ class StatsService {
             if (this.app.activeChallenge) {
                 console.log('📋 Using existing active challenge:', this.app.activeChallenge.name);
                 
+                // Ensure today's progress is loaded
+                if (!this.app.progressManager) {
+                    console.error('Progress manager not available');
+                    return;
+                }
+                
+                // Initialize today's progress if needed
+                await this.app.progressManager.initTodayProgress();
+                
                 // Calculate and store the stats
                 this.stats.challengeDays = this.calculateChallengeDays();
                 this.stats.challengeProgress = this.calculateChallengeProgress();
@@ -81,7 +90,12 @@ class StatsService {
                 this.stats.todayCompletion = this.calculateTodayCompletion();
                 
                 // PROGRESS BAR DEBUG - Stats stored (existing challenge)
-                console.log('📊 STATS STORED:', { days: this.stats.challengeDays, progress: this.stats.challengeProgress });
+                console.log('📊 STATS STORED:', { 
+                    days: this.stats.challengeDays, 
+                    progress: this.stats.challengeProgress,
+                    dailyPoints: this.stats.dailyPoints,
+                    completion: this.stats.todayCompletion
+                });
                 return;
             }
             
@@ -110,11 +124,18 @@ class StatsService {
                 this.stats.todayCompletion = this.calculateTodayCompletion();
                 
                 // PROGRESS BAR DEBUG - Stats stored (loaded challenge)
-                console.log('📊 STATS STORED:', { days: this.stats.challengeDays, progress: this.stats.challengeProgress });
+                console.log('📊 STATS STORED:', { 
+                    days: this.stats.challengeDays, 
+                    progress: this.stats.challengeProgress,
+                    dailyPoints: this.stats.dailyPoints,
+                    completion: this.stats.todayCompletion
+                });
             } else {
                 this.app.activeChallenge = null;
                 this.stats.challengeDays = 0;
                 this.stats.challengeProgress = 0;
+                this.stats.dailyPoints = 0;
+                this.stats.todayCompletion = 0;
                 console.log('⚠️ No active challenge found');
             }
         } catch (error) {
@@ -127,11 +148,21 @@ class StatsService {
     // ==========================================
 
     calculateDailyPoints() {
-        if (!this.app.dailyProgress || !this.app.activeChallenge) return 0;
+        if (!this.app.activeChallenge) return 0;
         
-        const today = new Date().toISOString().split('T')[0];
-        const todayProgress = this.app.dailyProgress[today] || {};
-        return Object.values(todayProgress).filter(Boolean).length;
+        // Get today's date in the same format as progress.js
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        
+        const todayProgress = this.app.dailyProgress?.[dateStr] || {};
+        const completedCount = Object.values(todayProgress).filter(Boolean).length;
+        
+        console.log(`📊 Daily points calculation: date=${dateStr}, progress=`, todayProgress, `count=${completedCount}`);
+        
+        return completedCount;
     }
 
     calculateChallengeDays() {
@@ -256,27 +287,42 @@ class StatsService {
     }
 
     updateHeaderPoints() {
-        // Update header total points
-        const headerElements = document.querySelectorAll('.text-black');
-        headerElements.forEach(el => {
-            if (el.textContent.includes('points')) {
-                el.textContent = `${this.getTotalPoints()} points`;
-            }
-        });
+        // Update header total points - look for the specific structure
+        const headerPointsElement = document.querySelector('header .text-2xl.font-bold.text-black');
+        if (headerPointsElement) {
+            headerPointsElement.textContent = `${this.getTotalPoints()} points`;
+            console.log(`📊 Updated header points to: ${this.getTotalPoints()}`);
+        } else {
+            // Fallback: find any element with "points" text in header
+            const headerElements = document.querySelectorAll('header .text-black');
+            headerElements.forEach(el => {
+                if (el.textContent.includes('points')) {
+                    el.textContent = `${this.getTotalPoints()} points`;
+                    console.log(`📊 Updated header points (fallback) to: ${this.getTotalPoints()}`);
+                }
+            });
+        }
     }
 
     updateDashboardCards() {
-        // Update Today's Points card
-        const todayPointsElement = document.querySelector('.grid .text-2xl.text-black');
-        if (todayPointsElement) {
-            todayPointsElement.textContent = this.getDailyPoints();
-        }
-
-        // Update Completion % card
-        const completionElement = document.querySelector('.text-2xl.text-green-600');
-        if (completionElement) {
-            completionElement.textContent = `${this.getTodayCompletion()}%`;
-        }
+        // Update Today's Points card - look for the specific card
+        const statsCards = document.querySelectorAll('.grid > div');
+        statsCards.forEach(card => {
+            const label = card.querySelector('.text-sm.text-gray-600');
+            if (label && label.textContent === "Today's Points") {
+                const valueElement = card.querySelector('.text-2xl.font-bold.text-black');
+                if (valueElement) {
+                    valueElement.textContent = this.getDailyPoints();
+                    console.log(`📊 Updated Today's Points to: ${this.getDailyPoints()}`);
+                }
+            } else if (label && label.textContent === "Completed Today") {
+                const valueElement = card.querySelector('.text-2xl.font-bold.text-green-600');
+                if (valueElement) {
+                    valueElement.textContent = `${this.getTodayCompletion()}%`;
+                    console.log(`📊 Updated Completion % to: ${this.getTodayCompletion()}%`);
+                }
+            }
+        });
 
         // Update Challenge Days card
         const challengeDaysElements = document.querySelectorAll('.text-2xl.text-red-600');
@@ -381,7 +427,16 @@ class StatsService {
 
     async onTaskCompleted() {
         console.log('📊 Task completed - syncing stats...');
-        await this.syncAllStats();
+        
+        // Immediately recalculate daily points and update UI
+        this.stats.dailyPoints = this.calculateDailyPoints();
+        this.stats.todayCompletion = this.calculateTodayCompletion();
+        
+        // Update UI immediately for responsive feedback
+        this.updateAllUI();
+        
+        // Then do a full sync in the background
+        this.syncAllStats();
     }
 
     async onBadgeEarned() {

@@ -145,8 +145,17 @@ class ProgressManager {
                 newState
             );
             
+            // Immediately update local total points for instant feedback
+            if (newState) {
+                this.app.currentUser.total_points++;
+            } else {
+                this.app.currentUser.total_points = Math.max(0, this.app.currentUser.total_points - 1);
+            }
+            
             // Use the centralized StatsService to sync everything
             if (this.app.statsService) {
+                // Update the stats service's total points immediately
+                this.app.statsService.stats.totalPoints = this.app.currentUser.total_points;
                 await this.app.statsService.onTaskCompleted();
             } else {
                 // Fallback to old method if StatsService not available
