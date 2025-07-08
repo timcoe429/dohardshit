@@ -344,6 +344,7 @@ class StatsService {
         this.updateBadgeDisplays();
         this.updateLeaderboards();
         this.updatePersonalStatsTab();
+        this.updateBoostIndicator();
     }
 
     updateHeaderPoints() {
@@ -468,6 +469,32 @@ class StatsService {
         const personalStatsStreak = document.querySelector('#statsTab .text-xs.text-gray-500');
         if (personalStatsStreak && personalStatsStreak.textContent.includes('Current streak:')) {
             personalStatsStreak.textContent = `Current streak: ${this.getCurrentStreak()} days`;
+        }
+    }
+
+    updateBoostIndicator() {
+        // Find the boost indicator container
+        const mainContent = document.querySelector('main');
+        if (!mainContent || !this.app.activeChallenge) return;
+        
+        // Find the existing boost indicator or where it should be
+        const existingBoost = mainContent.querySelector('.bg-gradient-to-r.text-white.p-3.mb-4.rounded-lg.shadow-lg');
+        const statsCards = mainContent.querySelector('.grid.grid-cols-4.gap-4.mb-6');
+        
+        // Get the new boost HTML
+        const newBoostHTML = this.app.renderer.renderBoostIndicator();
+        
+        if (existingBoost) {
+            // If boost exists but shouldn't show, remove it
+            if (!newBoostHTML) {
+                existingBoost.remove();
+            } else {
+                // Update existing boost
+                existingBoost.outerHTML = newBoostHTML;
+            }
+        } else if (newBoostHTML && statsCards) {
+            // If boost should show but doesn't exist, add it before stats cards
+            statsCards.insertAdjacentHTML('beforebegin', newBoostHTML);
         }
     }
 

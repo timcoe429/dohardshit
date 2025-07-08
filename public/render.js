@@ -841,44 +841,16 @@ class Renderer {
             return '';
         }
         
-        // Check if we need to show boost indicator
-        const userRank = this.app.statsService.getRank();
+        // Use getBoostStatus which has all the proper checks
+        const boostStatus = this.app.statsService.getBoostStatus();
         
-        // Only show boost if user is not in first place
-        if (!userRank || userRank === 1) {
+        // If no boost status (user is #1 or has max points), return empty
+        if (!boostStatus || !boostStatus.active) {
             return '';
         }
         
-        // Get user's current badge
-        const badgeInfo = this.app.statsService.getBadgeInfo();
-        
-        // Calculate boost multiplier based on badge
-        let boostText = '';
-        let gradientClasses = '';
-        
-        switch(badgeInfo.name) {
-            case 'Lil Bitch':
-                boostText = '2x Boost Active';
-                gradientClasses = 'from-purple-500 to-purple-600';
-                break;
-            case 'BEAST MODE':
-                boostText = '1.5x Boost Active';
-                gradientClasses = 'from-orange-500 to-orange-600';
-                break;
-            case 'WARRIOR':
-                boostText = '1.33x Boost Active';
-                gradientClasses = 'from-blue-500 to-blue-600';
-                break;
-            case 'SAVAGE':
-                boostText = '1.25x Boost Active';
-                gradientClasses = 'from-gray-700 to-gray-800';
-                break;
-            case 'LEGEND':
-                return ''; // No boost for legends
-            default:
-                boostText = '2x Boost Active';
-                gradientClasses = 'from-purple-500 to-purple-600';
-        }
+        // Get gradient based on badge
+        const gradientClasses = this.getBoostGradient(boostStatus.badge);
         
         return `
             <div class="bg-gradient-to-r ${gradientClasses} text-white p-3 mb-4 rounded-lg shadow-lg">
@@ -886,8 +858,8 @@ class Renderer {
                     <div class="flex items-center space-x-2">
                         <span class="text-2xl animate-pulse">🚀</span>
                         <div>
-                            <p class="font-bold text-lg">${boostText}</p>
-                            <p class="text-xs opacity-90">You're in position #${userRank} - Catch up bonus active!</p>
+                            <p class="font-bold text-lg">${boostStatus.multiplier}x Boost Active</p>
+                            <p class="text-xs opacity-90">You're in position #${boostStatus.rank} - Catch up bonus active!</p>
                         </div>
                     </div>
                     <div class="text-right">

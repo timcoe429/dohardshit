@@ -88,6 +88,9 @@ class ChallengeApp {
                 console.log('✅ Stats synced, now rendering dashboard');
             }
 
+            // Load leaderboard data for boost calculation
+            await this.loadLeaderboard();
+
             // Only render AFTER stats are synced
             this.render(); // This will update the DOM with correct data
             this.eventHandler.attachDashboardEvents();
