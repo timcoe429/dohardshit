@@ -211,32 +211,50 @@ class EventHandler {
             
             const topFive = leaderboard.slice(0, 5);
             
-            miniLeaderboard.innerHTML = topFive.map((user, index) => `
-                <div class="flex justify-between items-center py-1 ${(user.username === this.app.currentUser?.username || user.name === this.app.currentUser?.username) ? 'bg-blue-50 rounded px-2' : ''}">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-xs font-bold ${index === 0 ? 'text-yellow-600' : 'text-gray-500'}">
-                            #${index + 1}
-                        </span>
-                        <span class="text-sm">${user.username || user.name || 'Unknown User'}</span>
+            // Helper function to get border color based on badge
+            const getBadgeBorderClass = (themeClass) => {
+                if (themeClass?.includes('legend')) return 'border-yellow-500 bg-yellow-50';
+                if (themeClass?.includes('savage')) return 'border-gray-800 bg-gray-100';
+                if (themeClass?.includes('warrior')) return 'border-blue-500 bg-blue-50';
+                if (themeClass?.includes('beast')) return 'border-orange-500 bg-orange-50';
+                return 'border-purple-500 bg-purple-50'; // Lil Bitch
+            };
+            
+            miniLeaderboard.innerHTML = topFive.map((user, index) => {
+                const isCurrentUser = (user.name === this.app.currentUser?.username || user.name === this.app.currentUser?.name);
+                const borderClass = getBadgeBorderClass(user.theme_class);
+                
+                return `
+                    <div class="flex justify-between items-center py-2 px-2 rounded border-2 ${borderClass} ${isCurrentUser ? 'ring-2 ring-black' : ''}">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-bold ${index === 0 ? 'text-yellow-600' : 'text-gray-600'}">
+                                #${index + 1}
+                            </span>
+                            <span class="text-lg">${user.badge_icon || '🍆'}</span>
+                            <span class="text-sm font-medium">${user.name || 'Unknown User'}</span>
+                        </div>
+                        <span class="text-sm font-bold">${user.total_points || 0}</span>
                     </div>
-                    <span class="text-sm font-bold">${user.total_points || 0}</span>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             
             // Show current user's rank if not in top 5
             const currentUserRank = leaderboard.findIndex(u => 
-                u.username === this.app.currentUser?.username || 
-                u.name === this.app.currentUser?.username
+                u.name === this.app.currentUser?.username || 
+                u.name === this.app.currentUser?.name
             );
             
             if (currentUserRank >= 5) {
                 const currentUser = leaderboard[currentUserRank];
+                const borderClass = getBadgeBorderClass(currentUser.theme_class);
+                
                 miniLeaderboard.innerHTML += `
-                    <div class="border-t pt-2 mt-2">
-                        <div class="flex justify-between items-center py-1 bg-blue-50 rounded px-2">
+                    <div class="border-t-2 border-gray-300 pt-2 mt-2">
+                        <div class="flex justify-between items-center py-2 px-2 rounded border-2 ${borderClass} ring-2 ring-black">
                             <div class="flex items-center space-x-2">
-                                <span class="text-xs font-bold text-gray-500">#${currentUserRank + 1}</span>
-                                <span class="text-sm">${currentUser.username || currentUser.name || 'You'}</span>
+                                <span class="text-xs font-bold text-gray-600">#${currentUserRank + 1}</span>
+                                <span class="text-lg">${currentUser.badge_icon || '🍆'}</span>
+                                <span class="text-sm font-medium">${currentUser.name || 'You'}</span>
                             </div>
                             <span class="text-sm font-bold">${currentUser.total_points || 0}</span>
                         </div>

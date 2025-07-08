@@ -411,11 +411,22 @@ app.get('/api/leaderboard', async (req, res) => {
         u.total_points,
         COUNT(DISTINCT c.id) as total_challenges,
         COUNT(CASE WHEN dp.completed = true THEN 1 END) as total_completed_goals,
-        MAX(c.created_at) as last_active
+        MAX(c.created_at) as last_active,
+        COALESCE(b.name, 'Lil Bitch') as badge_name,
+        COALESCE(b.icon, '🍆') as badge_icon,
+        COALESCE(b.theme_class, 'theme-lilbitch') as theme_class
       FROM users u
       LEFT JOIN challenges c ON u.id = c.user_id
       LEFT JOIN daily_progress_v2 dp ON u.id = dp.user_id
-      GROUP BY u.id, u.name, u.total_points
+      LEFT JOIN user_badges ub ON u.id = ub.user_id
+      LEFT JOIN badges b ON ub.badge_id = b.id AND b.category = 'streak'
+      WHERE b.id IS NULL OR b.requirement_value = (
+        SELECT MAX(b2.requirement_value)
+        FROM user_badges ub2
+        JOIN badges b2 ON ub2.badge_id = b2.id
+        WHERE ub2.user_id = u.id AND b2.category = 'streak'
+      )
+      GROUP BY u.id, u.name, u.total_points, b.name, b.icon, b.theme_class
       ORDER BY u.total_points DESC, u.name ASC
       LIMIT 10
     `);
