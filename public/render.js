@@ -713,21 +713,19 @@ class Renderer {
                 
                 <!-- Current Badge Status -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="font-bold text-gray-700">Badge Progress</h4>
-                        <span class="text-2xl">${badgeInfo.icon}</span>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-3xl">${badgeInfo.icon}</span>
+                        <div>
+                            <p class="font-bold text-lg">${badgeInfo.name}</p>
+                            <p class="text-sm text-gray-500">${currentStreak} day streak</p>
+                        </div>
                     </div>
-                    <div class="mb-2">
-                        <p class="font-medium text-lg">${badgeInfo.name}</p>
-                        <p class="text-xs text-gray-500">${currentStreak} consecutive days</p>
-                    </div>
-                    ${this.renderBadgeProgressBars(currentStreak)}
                 </div>
                 
                 <!-- 7-Day Activity Chart -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
                     <h4 class="font-bold text-gray-700 mb-3">Last 7 Days Activity</h4>
-                    <div id="weeklyActivityChart" class="h-32">
+                    <div id="weeklyActivityChart" class="h-40">
                         <p class="text-gray-500 text-sm text-center">Loading activity data...</p>
                     </div>
                 </div>
@@ -737,14 +735,6 @@ class Renderer {
                     <h4 class="font-bold text-gray-700 mb-3">This Month's Progress</h4>
                     <div id="monthlyCalendar" class="grid grid-cols-7 gap-1 text-xs">
                         <p class="text-gray-500 text-sm text-center col-span-7">Loading calendar...</p>
-                    </div>
-                </div>
-                
-                <!-- Detailed Stats -->
-                <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
-                    <h4 class="font-bold text-gray-700 mb-3">Performance Metrics</h4>
-                    <div id="performanceMetrics" class="space-y-2">
-                        <p class="text-gray-500 text-sm">Loading metrics...</p>
                     </div>
                 </div>
                 
@@ -763,47 +753,8 @@ class Renderer {
                         ${this.renderRecentChallenges()}
                     </div>
                 </div>
-                
-                <!-- View Detailed Stats Button -->
-                <button 
-                    id="viewDetailedStatsBtn"
-                    class="w-full bg-black hover:bg-gray-800 text-white py-3 rounded-lg font-bold transition-all"
-                >
-                    📈 View All-Time Stats
-                </button>
             </div>
         `;
-    }
-    
-    renderBadgeProgressBars(currentStreak) {
-        const milestones = [
-            { days: 3, name: 'BEAST MODE', icon: '🔥' },
-            { days: 7, name: 'WARRIOR', icon: '⚡' },
-            { days: 30, name: 'SAVAGE', icon: '💀' },
-            { days: 100, name: 'LEGEND', icon: '👑' }
-        ];
-        
-        return milestones.map(milestone => {
-            const progress = Math.min((currentStreak / milestone.days) * 100, 100);
-            const isAchieved = currentStreak >= milestone.days;
-            
-            return `
-                <div class="mb-2">
-                    <div class="flex items-center justify-between mb-1">
-                        <div class="flex items-center space-x-1">
-                            <span class="${isAchieved ? '' : 'opacity-50'}">${milestone.icon}</span>
-                            <span class="text-xs ${isAchieved ? 'font-bold' : 'text-gray-500'}">${milestone.name}</span>
-                        </div>
-                        <span class="text-xs text-gray-500">${currentStreak}/${milestone.days} days</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="${isAchieved ? 'bg-green-500' : 'bg-blue-500'} h-2 rounded-full transition-all duration-500" 
-                             style="width: ${progress}%">
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
     }
     
     getBadgeIcon(badgeTitle) {

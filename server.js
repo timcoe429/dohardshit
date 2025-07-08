@@ -572,20 +572,28 @@ app.get('/api/users/:userId/streak-debug', async (req, res) => {
       WHERE ub.user_id = $1
     `, [userId]);
     
-    // Calculate simple streak
+    // Calculate simple streak - count consecutive days from today/yesterday backwards
     let streak = 0;
     const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const dates = progressData.rows.map(r => r.date);
     
-    for (let i = 0; i < 30; i++) {
-      const checkDate = new Date(today);
-      checkDate.setDate(checkDate.getDate() - i);
+    // Check if user has progress today
+    const hasProgressToday = dates.includes(todayStr);
+    
+    // Start from yesterday (or today if they have progress today)
+    let checkDate = new Date(today);
+    if (!hasProgressToday) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+    
+    // Count backwards while we have consecutive days
+    while (true) {
       const dateStr = checkDate.toISOString().split('T')[0];
-      
-      const hasProgress = progressData.rows.some(row => row.date === dateStr);
-      
-      if (hasProgress) {
+      if (dates.includes(dateStr)) {
         streak++;
-      } else if (i > 0) {
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
         break;
       }
     }
@@ -597,7 +605,8 @@ app.get('/api/users/:userId/streak-debug', async (req, res) => {
       debug: {
         totalProgressDays: progressData.rows.length,
         userId: userId,
-        today: new Date().toISOString().split('T')[0]
+        today: todayStr,
+        hasProgressToday: hasProgressToday
       }
     });
   } catch (err) {
@@ -912,35 +921,46 @@ app.get('/api/users/:userId/stats', async (req, res) => {
       [userId]
     );
     
-    // Get current streak (consecutive days with at least one goal completed)
-    const streakResult = await pool.query(`
-      WITH daily_activity AS (
-        SELECT 
-          date,
-          CASE WHEN COUNT(CASE WHEN completed = true THEN 1 END) > 0 THEN 1 ELSE 0 END as has_activity
-        FROM daily_progress_v2 
-        WHERE user_id = $1 
-        GROUP BY date
-        ORDER BY date DESC
-      ),
-      streak_calc AS (
-        SELECT 
-          date,
-          has_activity,
-          ROW_NUMBER() OVER (ORDER BY date DESC) - 
-          ROW_NUMBER() OVER (PARTITION BY has_activity ORDER BY date DESC) as grp
-        FROM daily_activity
-      )
-      SELECT COUNT(*) as current_streak
-      FROM streak_calc
-      WHERE has_activity = 1 AND grp = 0
+    // Get current streak - simpler approach
+    const progressData = await pool.query(`
+      SELECT DISTINCT date::text as date
+      FROM daily_progress_v2
+      WHERE user_id = $1 AND completed = true
+      ORDER BY date DESC
+      LIMIT 100
     `, [userId]);
+    
+    // Calculate streak by counting consecutive days from today/yesterday
+    let currentStreak = 0;
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const dates = progressData.rows.map(r => r.date);
+    
+    // Check if user has progress today
+    const hasProgressToday = dates.includes(todayStr);
+    
+    // Start from yesterday (or today if they have progress today)
+    let checkDate = new Date(today);
+    if (!hasProgressToday) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+    
+    // Count backwards while we have consecutive days
+    while (currentStreak < 100) { // Safety limit
+      const dateStr = checkDate.toISOString().split('T')[0];
+      if (dates.includes(dateStr)) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
     
     res.json({
       rank: rankResult.rows[0]?.rank || 0,
       total_challenges: parseInt(challengeResult.rows[0]?.challenge_count || 0),
       total_completed_goals: parseInt(goalsResult.rows[0]?.completed_goals || 0),
-      current_streak: parseInt(streakResult.rows[0]?.current_streak || 0)
+      current_streak: currentStreak
     });
   } catch (err) {
     console.error('Get user stats error:', err);

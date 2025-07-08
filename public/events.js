@@ -279,9 +279,6 @@ class EventHandler {
             
             // Load monthly calendar
             await this.loadMonthlyCalendar();
-            
-            // Load performance metrics
-            await this.loadPerformanceMetrics();
         } catch (error) {
             console.error('Failed to load detailed stats:', error);
         }
@@ -314,37 +311,56 @@ class EventHandler {
                     date: date.getDate(),
                     completed: completedCount,
                     total: totalGoals,
-                    percentage: totalGoals > 0 ? Math.round((completedCount / totalGoals) * 100) : 0
+                    percentage: totalGoals > 0 ? Math.round((completedCount / totalGoals) * 100) : 0,
+                    isToday: i === 0
                 });
             }
             
-            // Render the chart
-            const maxHeight = 100;
+            // Render the improved chart
+            const maxHeight = 120;
             weeklyChart.innerHTML = `
-                <div class="flex items-end justify-between h-full">
+                <div class="flex items-end justify-between h-32 px-2">
                     ${days.map((day, index) => {
                         const height = day.total > 0 ? (day.completed / day.total) * maxHeight : 0;
                         const isToday = index === 6;
-                        const color = day.percentage === 100 ? 'bg-green-500' : 
-                                     day.percentage > 0 ? 'bg-blue-500' : 'bg-gray-300';
+                        let barClass = '';
+                        
+                        if (day.percentage === 100) {
+                            barClass = 'bg-gradient-to-t from-green-600 to-green-400';
+                        } else if (day.percentage > 0) {
+                            barClass = 'bg-gradient-to-t from-blue-600 to-blue-400';
+                        } else {
+                            barClass = 'bg-gray-200';
+                        }
                         
                         return `
-                            <div class="flex-1 flex flex-col items-center">
-                                <div class="w-full flex justify-center mb-1">
-                                    <div class="w-8 ${color} rounded-t" style="height: ${height}px" 
-                                         title="${day.completed}/${day.total} tasks">
+                            <div class="flex-1 flex flex-col items-center mx-1">
+                                <div class="w-full flex flex-col items-center">
+                                    <span class="text-xs font-medium mb-1 ${day.percentage === 100 ? 'text-green-600' : 'text-gray-600'}">
+                                        ${day.completed}/${day.total}
+                                    </span>
+                                    <div class="w-10 ${barClass} rounded-t-lg transition-all duration-500 relative" 
+                                         style="height: ${height}px">
+                                        ${day.percentage === 100 ? '<span class="absolute -top-6 left-1/2 transform -translate-x-1/2 text-lg">✅</span>' : ''}
                                     </div>
                                 </div>
-                                <p class="text-xs ${isToday ? 'font-bold' : ''}">${day.day}</p>
-                                <p class="text-xs text-gray-400">${day.date}</p>
+                                <div class="mt-2 text-center">
+                                    <p class="text-xs font-medium ${isToday ? 'text-black' : 'text-gray-600'}">${day.day}</p>
+                                    <p class="text-xs text-gray-400">${day.date}</p>
+                                </div>
                             </div>
                         `;
                     }).join('')}
                 </div>
-                <div class="mt-2 text-center">
-                    <p class="text-xs text-gray-500">
-                        ${days.filter(d => d.percentage === 100).length} perfect days this week
-                    </p>
+                <div class="mt-3 pt-3 border-t border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <p class="text-sm text-gray-600">
+                            <span class="font-medium">${days.filter(d => d.percentage === 100).length}</span> perfect days
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            <span class="font-medium">${days.reduce((sum, d) => sum + d.completed, 0)}</span> tasks completed
+                        </p>
+                    </div>
                 </div>
             `;
         } catch (error) {
@@ -418,65 +434,6 @@ class EventHandler {
             const calendar = document.getElementById('monthlyCalendar');
             if (calendar) {
                 calendar.innerHTML = '<p class="text-gray-500 text-sm text-center col-span-7">Unable to load calendar</p>';
-            }
-        }
-    }
-    
-    async loadPerformanceMetrics() {
-        try {
-            const metricsDiv = document.getElementById('performanceMetrics');
-            if (!metricsDiv) return;
-            
-            // Calculate various metrics
-            const response = await fetch(`/api/users/${this.app.currentUser.id}/performance-metrics`);
-            let metrics = {};
-            
-            if (response.ok) {
-                metrics = await response.json();
-            } else {
-                // Calculate locally if API not available
-                const totalChallenges = this.app.pastChallenges?.length || 0;
-                const totalPoints = this.app.statsService?.getTotalPoints() || this.app.currentUser.total_points;
-                const currentStreak = this.app.statsService?.getCurrentStreak() || 0;
-                
-                metrics = {
-                    avgPointsPerDay: totalChallenges > 0 ? Math.round(totalPoints / Math.max(1, currentStreak)) : 0,
-                    totalDaysActive: currentStreak,
-                    perfectDays: 0, // Would need to calculate from progress data
-                    longestStreak: currentStreak, // Would need historical data
-                    avgCompletionRate: 0 // Would need to calculate from all challenges
-                };
-            }
-            
-            metricsDiv.innerHTML = `
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="text-center p-2 bg-gray-50 rounded">
-                        <p class="text-lg font-bold">${metrics.avgPointsPerDay || 0}</p>
-                        <p class="text-xs text-gray-500">Avg Points/Day</p>
-                    </div>
-                    <div class="text-center p-2 bg-gray-50 rounded">
-                        <p class="text-lg font-bold">${metrics.totalDaysActive || 0}</p>
-                        <p class="text-xs text-gray-500">Days Active</p>
-                    </div>
-                    <div class="text-center p-2 bg-gray-50 rounded">
-                        <p class="text-lg font-bold">${metrics.perfectDays || 0}</p>
-                        <p class="text-xs text-gray-500">Perfect Days</p>
-                    </div>
-                    <div class="text-center p-2 bg-gray-50 rounded">
-                        <p class="text-lg font-bold">${metrics.longestStreak || 0}</p>
-                        <p class="text-xs text-gray-500">Best Streak</p>
-                    </div>
-                </div>
-                <div class="mt-3 p-2 bg-blue-50 rounded text-center">
-                    <p class="text-xs text-gray-600">Lifetime Completion Rate</p>
-                    <p class="text-2xl font-bold text-blue-600">${metrics.avgCompletionRate || 0}%</p>
-                </div>
-            `;
-        } catch (error) {
-            console.error('Failed to load performance metrics:', error);
-            const metricsDiv = document.getElementById('performanceMetrics');
-            if (metricsDiv) {
-                metricsDiv.innerHTML = '<p class="text-gray-500 text-sm">Unable to load metrics</p>';
             }
         }
     }
