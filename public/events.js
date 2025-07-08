@@ -192,6 +192,7 @@ class EventHandler {
             // Load specific tab content
             if (tabName === 'stats') {
                 this.loadMiniLeaderboard();
+                this.loadDetailedStats();
                 
                 // Force refresh personal stats to ensure latest data
                 if (this.app.statsService) {
@@ -267,6 +268,215 @@ class EventHandler {
             const miniLeaderboard = document.getElementById('miniLeaderboard');
             if (miniLeaderboard) {
                 miniLeaderboard.innerHTML = '<p class="text-gray-500 text-sm">Unable to load rankings</p>';
+            }
+        }
+    }
+    
+    async loadDetailedStats() {
+        try {
+            // Load weekly activity data
+            await this.loadWeeklyActivity();
+            
+            // Load monthly calendar
+            await this.loadMonthlyCalendar();
+            
+            // Load performance metrics
+            await this.loadPerformanceMetrics();
+        } catch (error) {
+            console.error('Failed to load detailed stats:', error);
+        }
+    }
+    
+    async loadWeeklyActivity() {
+        try {
+            const weeklyChart = document.getElementById('weeklyActivityChart');
+            if (!weeklyChart) return;
+            
+            // Get last 7 days of data
+            const days = [];
+            const today = new Date();
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                // Try to get progress for this day
+                const response = await fetch(`/api/progress/${this.app.currentUser.id}/${this.app.activeChallenge?.id || 0}/${dateStr}`);
+                const progress = response.ok ? await response.json() : {};
+                
+                const completedCount = Object.values(progress).filter(Boolean).length;
+                const totalGoals = this.app.activeChallenge?.goals?.length || 0;
+                
+                days.push({
+                    day: dayNames[date.getDay()],
+                    date: date.getDate(),
+                    completed: completedCount,
+                    total: totalGoals,
+                    percentage: totalGoals > 0 ? Math.round((completedCount / totalGoals) * 100) : 0
+                });
+            }
+            
+            // Render the chart
+            const maxHeight = 100;
+            weeklyChart.innerHTML = `
+                <div class="flex items-end justify-between h-full">
+                    ${days.map((day, index) => {
+                        const height = day.total > 0 ? (day.completed / day.total) * maxHeight : 0;
+                        const isToday = index === 6;
+                        const color = day.percentage === 100 ? 'bg-green-500' : 
+                                     day.percentage > 0 ? 'bg-blue-500' : 'bg-gray-300';
+                        
+                        return `
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="w-full flex justify-center mb-1">
+                                    <div class="w-8 ${color} rounded-t" style="height: ${height}px" 
+                                         title="${day.completed}/${day.total} tasks">
+                                    </div>
+                                </div>
+                                <p class="text-xs ${isToday ? 'font-bold' : ''}">${day.day}</p>
+                                <p class="text-xs text-gray-400">${day.date}</p>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div class="mt-2 text-center">
+                    <p class="text-xs text-gray-500">
+                        ${days.filter(d => d.percentage === 100).length} perfect days this week
+                    </p>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Failed to load weekly activity:', error);
+            const weeklyChart = document.getElementById('weeklyActivityChart');
+            if (weeklyChart) {
+                weeklyChart.innerHTML = '<p class="text-gray-500 text-sm text-center">Unable to load activity data</p>';
+            }
+        }
+    }
+    
+    async loadMonthlyCalendar() {
+        try {
+            const calendar = document.getElementById('monthlyCalendar');
+            if (!calendar) return;
+            
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            // Days of week headers
+            const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+            let calendarHTML = dayHeaders.map(day => 
+                `<div class="text-center font-bold text-gray-600">${day}</div>`
+            ).join('');
+            
+            // Empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                calendarHTML += '<div></div>';
+            }
+            
+            // Days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dateStr = date.toISOString().split('T')[0];
+                const isToday = day === today.getDate();
+                const isFuture = date > today;
+                
+                if (!isFuture && this.app.activeChallenge) {
+                    // Get progress for this day
+                    const response = await fetch(`/api/progress/${this.app.currentUser.id}/${this.app.activeChallenge.id}/${dateStr}`);
+                    const progress = response.ok ? await response.json() : {};
+                    const completedCount = Object.values(progress).filter(Boolean).length;
+                    const totalGoals = this.app.activeChallenge.goals.length;
+                    const percentage = Math.round((completedCount / totalGoals) * 100);
+                    
+                    const bgColor = percentage === 100 ? 'bg-green-500 text-white' :
+                                  percentage > 0 ? 'bg-blue-200' : 'bg-gray-100';
+                    
+                    calendarHTML += `
+                        <div class="aspect-square flex items-center justify-center rounded ${bgColor} ${isToday ? 'ring-2 ring-black' : ''}"
+                             title="${completedCount}/${totalGoals} tasks (${percentage}%)">
+                            ${day}
+                        </div>
+                    `;
+                } else {
+                    // No data or future date
+                    calendarHTML += `
+                        <div class="aspect-square flex items-center justify-center rounded ${isFuture ? 'text-gray-300' : 'bg-gray-50'} ${isToday ? 'ring-2 ring-black' : ''}">
+                            ${day}
+                        </div>
+                    `;
+                }
+            }
+            
+            calendar.innerHTML = calendarHTML;
+        } catch (error) {
+            console.error('Failed to load monthly calendar:', error);
+            const calendar = document.getElementById('monthlyCalendar');
+            if (calendar) {
+                calendar.innerHTML = '<p class="text-gray-500 text-sm text-center col-span-7">Unable to load calendar</p>';
+            }
+        }
+    }
+    
+    async loadPerformanceMetrics() {
+        try {
+            const metricsDiv = document.getElementById('performanceMetrics');
+            if (!metricsDiv) return;
+            
+            // Calculate various metrics
+            const response = await fetch(`/api/users/${this.app.currentUser.id}/performance-metrics`);
+            let metrics = {};
+            
+            if (response.ok) {
+                metrics = await response.json();
+            } else {
+                // Calculate locally if API not available
+                const totalChallenges = this.app.pastChallenges?.length || 0;
+                const totalPoints = this.app.statsService?.getTotalPoints() || this.app.currentUser.total_points;
+                const currentStreak = this.app.statsService?.getCurrentStreak() || 0;
+                
+                metrics = {
+                    avgPointsPerDay: totalChallenges > 0 ? Math.round(totalPoints / Math.max(1, currentStreak)) : 0,
+                    totalDaysActive: currentStreak,
+                    perfectDays: 0, // Would need to calculate from progress data
+                    longestStreak: currentStreak, // Would need historical data
+                    avgCompletionRate: 0 // Would need to calculate from all challenges
+                };
+            }
+            
+            metricsDiv.innerHTML = `
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="text-center p-2 bg-gray-50 rounded">
+                        <p class="text-lg font-bold">${metrics.avgPointsPerDay || 0}</p>
+                        <p class="text-xs text-gray-500">Avg Points/Day</p>
+                    </div>
+                    <div class="text-center p-2 bg-gray-50 rounded">
+                        <p class="text-lg font-bold">${metrics.totalDaysActive || 0}</p>
+                        <p class="text-xs text-gray-500">Days Active</p>
+                    </div>
+                    <div class="text-center p-2 bg-gray-50 rounded">
+                        <p class="text-lg font-bold">${metrics.perfectDays || 0}</p>
+                        <p class="text-xs text-gray-500">Perfect Days</p>
+                    </div>
+                    <div class="text-center p-2 bg-gray-50 rounded">
+                        <p class="text-lg font-bold">${metrics.longestStreak || 0}</p>
+                        <p class="text-xs text-gray-500">Best Streak</p>
+                    </div>
+                </div>
+                <div class="mt-3 p-2 bg-blue-50 rounded text-center">
+                    <p class="text-xs text-gray-600">Lifetime Completion Rate</p>
+                    <p class="text-2xl font-bold text-blue-600">${metrics.avgCompletionRate || 0}%</p>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Failed to load performance metrics:', error);
+            const metricsDiv = document.getElementById('performanceMetrics');
+            if (metricsDiv) {
+                metricsDiv.innerHTML = '<p class="text-gray-500 text-sm">Unable to load metrics</p>';
             }
         }
     }

@@ -948,6 +948,84 @@ app.get('/api/users/:userId/stats', async (req, res) => {
   }
 });
 
+// Add this new endpoint after the /api/users/:userId/stats endpoint
+// Get detailed performance metrics
+app.get('/api/users/:userId/performance-metrics', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Get total days with any progress
+    const daysActiveResult = await pool.query(`
+      SELECT COUNT(DISTINCT date) as days_active
+      FROM daily_progress_v2
+      WHERE user_id = $1 AND completed = true
+    `, [userId]);
+    
+    // Get perfect days (all goals completed)
+    const perfectDaysResult = await pool.query(`
+      WITH daily_totals AS (
+        SELECT 
+          dp.date,
+          COUNT(CASE WHEN dp.completed THEN 1 END) as completed_count,
+          COUNT(DISTINCT cg.goal_index) as total_goals
+        FROM daily_progress_v2 dp
+        JOIN challenges c ON dp.challenge_id = c.id
+        JOIN challenge_goals cg ON c.id = cg.challenge_id
+        WHERE dp.user_id = $1
+        GROUP BY dp.date, c.id
+      )
+      SELECT COUNT(*) as perfect_days
+      FROM daily_totals
+      WHERE completed_count = total_goals AND total_goals > 0
+    `, [userId]);
+    
+    // Get average completion rate
+    const completionRateResult = await pool.query(`
+      WITH challenge_stats AS (
+        SELECT 
+          c.id,
+          COUNT(CASE WHEN dp.completed THEN 1 END)::float as completed,
+          COUNT(dp.*)::float as total
+        FROM challenges c
+        JOIN daily_progress_v2 dp ON c.id = dp.challenge_id
+        WHERE c.user_id = $1
+        GROUP BY c.id
+      )
+      SELECT 
+        COALESCE(AVG(CASE WHEN total > 0 THEN (completed / total * 100) ELSE 0 END), 0) as avg_completion_rate
+      FROM challenge_stats
+    `, [userId]);
+    
+    // Get total points and calculate average per day
+    const userResult = await pool.query(
+      'SELECT total_points FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    const daysActive = parseInt(daysActiveResult.rows[0].days_active) || 1;
+    const totalPoints = userResult.rows[0]?.total_points || 0;
+    const avgPointsPerDay = Math.round(totalPoints / daysActive);
+    
+    // Get longest streak (this is complex, so simplified version)
+    const streakResult = await pool.query(`
+      SELECT current_streak FROM users WHERE id = $1
+    `, [userId]);
+    
+    res.json({
+      totalDaysActive: daysActive,
+      perfectDays: parseInt(perfectDaysResult.rows[0].perfect_days) || 0,
+      avgCompletionRate: Math.round(completionRateResult.rows[0].avg_completion_rate) || 0,
+      avgPointsPerDay: avgPointsPerDay,
+      longestStreak: streakResult.rows[0]?.current_streak || 0,
+      totalPoints: totalPoints
+    });
+    
+  } catch (err) {
+    console.error('Get performance metrics error:', err);
+    res.status(500).json({ error: 'Failed to get performance metrics' });
+  }
+});
+
 // Get user's weekly stats
 app.get('/api/users/:userId/weekly-stats', async (req, res) => {
   try {

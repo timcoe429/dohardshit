@@ -686,33 +686,69 @@ class Renderer {
     }
     
     renderPersonalStatsTab() {
+        const currentStreak = this.app.statsService ? this.app.statsService.getCurrentStreak() : 0;
+        const totalPoints = this.app.statsService ? this.app.statsService.getTotalPoints() : this.app.currentUser.total_points;
+        const badgeInfo = this.app.statsService ? this.app.statsService.getBadgeInfo() : { 
+            name: this.app.currentUser.badge_title || 'Lil Bitch',
+            icon: this.getBadgeIcon(this.app.currentUser.badge_title)
+        };
+        
         return `
-            <div class="space-y-4">
-                <!-- Quick Stats -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-gray-50 rounded-lg p-4 text-center">
-                        <p class="text-2xl font-bold text-black">${this.app.statsService ? this.app.statsService.getTotalPoints() : this.app.currentUser.total_points}</p>
-                        <p class="text-xs text-gray-500">Total Points</p>
+            <div class="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pb-4">
+                <!-- Streak & Points Overview -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-gradient-to-br from-orange-500 to-red-600 text-white rounded-lg p-3 text-center">
+                        <p class="text-3xl font-bold">${currentStreak}</p>
+                        <p class="text-xs">Day Streak</p>
                     </div>
-                    <div class="bg-gray-50 rounded-lg p-4 text-center">
-                        <p class="text-2xl font-bold text-green-600">${this.app.pastChallenges?.length || 0}</p>
-                        <p class="text-xs text-gray-500">Completed</p>
+                    <div class="bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-lg p-3 text-center">
+                        <p class="text-3xl font-bold">${totalPoints}</p>
+                        <p class="text-xs">Total Points</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-500 to-teal-600 text-white rounded-lg p-3 text-center">
+                        <p class="text-3xl font-bold">${this.app.pastChallenges?.length || 0}</p>
+                        <p class="text-xs">Challenges</p>
                     </div>
                 </div>
                 
-                <!-- Current User Badge -->
+                <!-- Current Badge Status -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
-                    <h4 class="font-bold text-gray-700 mb-2">Current Badge</h4>
-                    <div class="flex items-center space-x-3">
-                        <span class="text-2xl">${this.app.statsService ? this.app.statsService.getBadgeInfo().icon : this.getBadgeIcon(this.app.currentUser.badge_title)}</span>
-                        <div>
-                            <p class="font-medium">${this.app.statsService ? this.app.statsService.getBadgeInfo().name : (this.app.currentUser.badge_title || 'Lil Bitch')}</p>
-                            <p class="text-xs text-gray-500">Current streak: ${this.app.statsService ? this.app.statsService.getCurrentStreak() : (this.app.currentUser.current_streak || 0)} days</p>
-                        </div>
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-bold text-gray-700">Badge Progress</h4>
+                        <span class="text-2xl">${badgeInfo.icon}</span>
+                    </div>
+                    <div class="mb-2">
+                        <p class="font-medium text-lg">${badgeInfo.name}</p>
+                        <p class="text-xs text-gray-500">${currentStreak} consecutive days</p>
+                    </div>
+                    ${this.renderBadgeProgressBars(currentStreak)}
+                </div>
+                
+                <!-- 7-Day Activity Chart -->
+                <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
+                    <h4 class="font-bold text-gray-700 mb-3">Last 7 Days Activity</h4>
+                    <div id="weeklyActivityChart" class="h-32">
+                        <p class="text-gray-500 text-sm text-center">Loading activity data...</p>
                     </div>
                 </div>
                 
-                <!-- Mini Global Leaderboard -->
+                <!-- Monthly Calendar View -->
+                <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
+                    <h4 class="font-bold text-gray-700 mb-3">This Month's Progress</h4>
+                    <div id="monthlyCalendar" class="grid grid-cols-7 gap-1 text-xs">
+                        <p class="text-gray-500 text-sm text-center col-span-7">Loading calendar...</p>
+                    </div>
+                </div>
+                
+                <!-- Detailed Stats -->
+                <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
+                    <h4 class="font-bold text-gray-700 mb-3">Performance Metrics</h4>
+                    <div id="performanceMetrics" class="space-y-2">
+                        <p class="text-gray-500 text-sm">Loading metrics...</p>
+                    </div>
+                </div>
+                
+                <!-- Global Rankings -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
                     <h4 class="font-bold text-gray-700 mb-3">🏆 Global Rankings</h4>
                     <div id="miniLeaderboard" class="space-y-2">
@@ -720,15 +756,54 @@ class Renderer {
                     </div>
                 </div>
                 
-                <!-- Challenge History -->
+                <!-- Recent Challenges -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
-                    <h4 class="font-bold text-gray-700 mb-3">📊 Recent Challenges</h4>
+                    <h4 class="font-bold text-gray-700 mb-3">📊 Challenge History</h4>
                     <div id="recentChallenges" class="space-y-2">
                         ${this.renderRecentChallenges()}
                     </div>
                 </div>
+                
+                <!-- View Detailed Stats Button -->
+                <button 
+                    id="viewDetailedStatsBtn"
+                    class="w-full bg-black hover:bg-gray-800 text-white py-3 rounded-lg font-bold transition-all"
+                >
+                    📈 View All-Time Stats
+                </button>
             </div>
         `;
+    }
+    
+    renderBadgeProgressBars(currentStreak) {
+        const milestones = [
+            { days: 3, name: 'BEAST MODE', icon: '🔥' },
+            { days: 7, name: 'WARRIOR', icon: '⚡' },
+            { days: 30, name: 'SAVAGE', icon: '💀' },
+            { days: 100, name: 'LEGEND', icon: '👑' }
+        ];
+        
+        return milestones.map(milestone => {
+            const progress = Math.min((currentStreak / milestone.days) * 100, 100);
+            const isAchieved = currentStreak >= milestone.days;
+            
+            return `
+                <div class="mb-2">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center space-x-1">
+                            <span class="${isAchieved ? '' : 'opacity-50'}">${milestone.icon}</span>
+                            <span class="text-xs ${isAchieved ? 'font-bold' : 'text-gray-500'}">${milestone.name}</span>
+                        </div>
+                        <span class="text-xs text-gray-500">${currentStreak}/${milestone.days} days</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="${isAchieved ? 'bg-green-500' : 'bg-blue-500'} h-2 rounded-full transition-all duration-500" 
+                             style="width: ${progress}%">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
     
     getBadgeIcon(badgeTitle) {
