@@ -836,8 +836,13 @@ class Renderer {
     }
 
     renderBoostIndicator() {
+        // Make sure stats are loaded
+        if (!this.app.statsService || !this.app.statsService.isDataFresh()) {
+            return '';
+        }
+        
         // Check if we need to show boost indicator
-        const userRank = this.app.statsService ? this.app.statsService.getRank() : 0;
+        const userRank = this.app.statsService.getRank();
         
         // Only show boost if user is not in first place
         if (!userRank || userRank === 1) {
@@ -845,8 +850,7 @@ class Renderer {
         }
         
         // Get user's current badge
-        const badgeInfo = this.app.statsService ? this.app.statsService.getBadgeInfo() : 
-            { name: this.app.currentUser.badge_title || 'Lil Bitch' };
+        const badgeInfo = this.app.statsService.getBadgeInfo();
         
         // Calculate boost multiplier based on badge
         let boostText = '';

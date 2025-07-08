@@ -12,7 +12,7 @@ class StatsService {
             todayCompletion: 0,
             currentBadge: null,
             currentStreak: 0,
-            rank: 0,
+            rank: 1, // Default to 1 until proven otherwise
             totalChallenges: 0,
             completedGoals: 0
         };
@@ -276,9 +276,25 @@ class StatsService {
 
     getBoostStatus() {
         const rank = this.getRank();
+        const totalPoints = this.getTotalPoints();
         
-        // No boost for first place
-        if (!rank || rank === 1) {
+        // Get max points from leaderboard if available
+        let maxPoints = totalPoints; // Default to user's own points
+        if (this.app.leaderboard && this.app.leaderboard.length > 0) {
+            maxPoints = Math.max(...this.app.leaderboard.map(u => u.total_points || 0));
+        }
+        
+        console.log('🚀 Boost Status Check:', {
+            rank: rank,
+            isFirstPlace: rank === 1,
+            totalPoints: totalPoints,
+            maxPoints: maxPoints,
+            hasMaxPoints: totalPoints >= maxPoints,
+            badge: this.getBadgeInfo().name
+        });
+        
+        // No boost for first place OR if user has the highest points
+        if (!rank || rank === 1 || totalPoints >= maxPoints) {
             return null;
         }
         

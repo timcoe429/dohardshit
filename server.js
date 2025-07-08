@@ -959,7 +959,7 @@ app.get('/api/users/:userId/stats', async (req, res) => {
     const rankResult = await pool.query(`
       WITH user_ranks AS (
         SELECT id, total_points, 
-               ROW_NUMBER() OVER (ORDER BY total_points DESC, name ASC) as rank
+               DENSE_RANK() OVER (ORDER BY total_points DESC) as rank
         FROM users
       )
       SELECT rank FROM user_ranks WHERE id = $1
