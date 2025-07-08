@@ -387,7 +387,63 @@ app.post('/api/progress', async (req, res) => {
     
     // Only update total points if the completion status actually changed
     if (completed !== wasAlreadyCompleted) {
-      const pointChange = completed ? 1 : -1;
+      let pointChange = completed ? 1 : -1;
+      
+      // Check if user qualifies for bonus points (only when completing, not uncompleting)
+      if (completed) {
+        // Get user's current rank
+        const rankResult = await pool.query(`
+          WITH user_ranks AS (
+            SELECT id, total_points, 
+                   ROW_NUMBER() OVER (ORDER BY total_points DESC, name ASC) as rank
+            FROM users
+          )
+          SELECT rank FROM user_ranks WHERE id = $1
+        `, [user_id]);
+        
+        const userRank = rankResult.rows[0]?.rank || 1;
+        
+        // Only apply bonus if user is NOT in first place
+        if (userRank > 1) {
+          // Get user's current badge
+          const badgeResult = await pool.query(`
+            SELECT b.name 
+            FROM user_badges ub
+            JOIN badges b ON b.id = ub.badge_id
+            WHERE ub.user_id = $1 AND b.category = 'streak'
+            ORDER BY b.requirement_value DESC
+            LIMIT 1
+          `, [user_id]);
+          
+          const badgeName = badgeResult.rows[0]?.name || 'Lil Bitch';
+          
+          // Calculate bonus based on badge
+          let bonusPoints = 0;
+          switch(badgeName) {
+            case 'Lil Bitch':
+              bonusPoints = 1; // 1:1 bonus
+              break;
+            case 'BEAST MODE':
+              bonusPoints = 0.5; // 2:1 ratio (need 2 tasks for 1 bonus point)
+              break;
+            case 'WARRIOR':
+              bonusPoints = 0.33; // 3:1 ratio
+              break;
+            case 'SAVAGE':
+              bonusPoints = 0.25; // 4:1 ratio
+              break;
+            case 'LEGEND':
+              bonusPoints = 0; // No bonus for legends
+              break;
+          }
+          
+          // Add bonus to point change
+          pointChange += bonusPoints;
+          
+          console.log(`User ${user_id} (rank #${userRank}, badge: ${badgeName}) earned ${pointChange} points (including ${bonusPoints} bonus)`);
+        }
+      }
+      
       await pool.query(
         'UPDATE users SET total_points = GREATEST(0, total_points + $1) WHERE id = $2',
         [pointChange, user_id]

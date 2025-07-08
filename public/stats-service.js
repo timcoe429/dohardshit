@@ -274,6 +274,50 @@ class StatsService {
         };
     }
 
+    getBoostStatus() {
+        const rank = this.getRank();
+        
+        // No boost for first place
+        if (!rank || rank === 1) {
+            return null;
+        }
+        
+        const badgeInfo = this.getBadgeInfo();
+        
+        // Calculate boost based on badge
+        let multiplier = 1;
+        let ratio = '';
+        
+        switch(badgeInfo.name) {
+            case 'Lil Bitch':
+                multiplier = 2;
+                ratio = '1:1';
+                break;
+            case 'BEAST MODE':
+                multiplier = 1.5;
+                ratio = '2:1';
+                break;
+            case 'WARRIOR':
+                multiplier = 1.33;
+                ratio = '3:1';
+                break;
+            case 'SAVAGE':
+                multiplier = 1.25;
+                ratio = '4:1';
+                break;
+            case 'LEGEND':
+                return null; // No boost for legends
+        }
+        
+        return {
+            active: true,
+            multiplier: multiplier,
+            ratio: ratio,
+            rank: rank,
+            badge: badgeInfo.name
+        };
+    }
+
     // ==========================================
     // UI UPDATE METHODS
     // ==========================================

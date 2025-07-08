@@ -137,6 +137,8 @@ class Renderer {
                 <!-- Main Content -->
                 <main class="max-w-4xl mx-auto px-4 py-8">
                     ${this.app.activeChallenge && !isComplete ? `
+                        ${this.renderBoostIndicator()}
+                        
                         <!-- Stats Cards with Current Badge -->
                         <div class="grid grid-cols-4 gap-4 mb-6">
                             <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
@@ -694,6 +696,7 @@ class Renderer {
             name: this.app.currentUser.badge_title || 'Lil Bitch',
             icon: this.getBadgeIcon(this.app.currentUser.badge_title)
         };
+        const boostStatus = this.app.statsService ? this.app.statsService.getBoostStatus() : null;
         
         return `
             <div class="space-y-4 overflow-x-hidden">
@@ -723,6 +726,19 @@ class Renderer {
                         </div>
                     </div>
                 </div>
+                
+                ${boostStatus ? `
+                <!-- Boost Status -->
+                <div class="bg-gradient-to-r ${this.getBoostGradient(badgeInfo.name)} text-white rounded-lg p-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-lg">🚀</span>
+                        <div class="flex-1">
+                            <p class="font-bold">${boostStatus.multiplier}x Boost Active!</p>
+                            <p class="text-xs opacity-90">Rank #${boostStatus.rank} • ${boostStatus.ratio} bonus ratio</p>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
                 
                 <!-- 7-Day Activity Chart -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
@@ -817,5 +833,80 @@ class Renderer {
                 </div>
             </div>
         `;
+    }
+
+    renderBoostIndicator() {
+        // Check if we need to show boost indicator
+        const userRank = this.app.statsService ? this.app.statsService.getRank() : 0;
+        
+        // Only show boost if user is not in first place
+        if (!userRank || userRank === 1) {
+            return '';
+        }
+        
+        // Get user's current badge
+        const badgeInfo = this.app.statsService ? this.app.statsService.getBadgeInfo() : 
+            { name: this.app.currentUser.badge_title || 'Lil Bitch' };
+        
+        // Calculate boost multiplier based on badge
+        let boostText = '';
+        let gradientClasses = '';
+        
+        switch(badgeInfo.name) {
+            case 'Lil Bitch':
+                boostText = '2x Boost Active';
+                gradientClasses = 'from-purple-500 to-purple-600';
+                break;
+            case 'BEAST MODE':
+                boostText = '1.5x Boost Active';
+                gradientClasses = 'from-orange-500 to-orange-600';
+                break;
+            case 'WARRIOR':
+                boostText = '1.33x Boost Active';
+                gradientClasses = 'from-blue-500 to-blue-600';
+                break;
+            case 'SAVAGE':
+                boostText = '1.25x Boost Active';
+                gradientClasses = 'from-gray-700 to-gray-800';
+                break;
+            case 'LEGEND':
+                return ''; // No boost for legends
+            default:
+                boostText = '2x Boost Active';
+                gradientClasses = 'from-purple-500 to-purple-600';
+        }
+        
+        return `
+            <div class="bg-gradient-to-r ${gradientClasses} text-white p-3 mb-4 rounded-lg shadow-lg">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-2xl animate-pulse">🚀</span>
+                        <div>
+                            <p class="font-bold text-lg">${boostText}</p>
+                            <p class="text-xs opacity-90">You're in position #${userRank} - Catch up bonus active!</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs">Complete tasks to</p>
+                        <p class="text-xs font-bold">earn bonus points!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    getBoostGradient(badgeName) {
+        switch(badgeName) {
+            case 'Lil Bitch':
+                return 'from-purple-500 to-purple-600';
+            case 'BEAST MODE':
+                return 'from-orange-500 to-orange-600';
+            case 'WARRIOR':
+                return 'from-blue-500 to-blue-600';
+            case 'SAVAGE':
+                return 'from-gray-700 to-gray-800';
+            default:
+                return 'from-purple-500 to-purple-600';
+        }
     }
 }
