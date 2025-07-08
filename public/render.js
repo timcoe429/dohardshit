@@ -235,21 +235,21 @@ class Renderer {
             </div>
             
             <!-- Slide-out Dashboard -->
-            <div id="slideOutDashboard" class="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 border-l-4 border-black">
+            <div id="slideOutDashboard" class="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 border-l-4 border-black overflow-hidden">
                 <div class="h-full flex flex-col">
                     <!-- Dashboard Header -->
-                    <div class="p-6 border-b-2 border-gray-200 bg-black">
+                    <div class="p-4 border-b-2 border-gray-200 bg-black flex-shrink-0">
                         <div class="flex items-center justify-between">
                             <div>
-                                <h2 class="text-xl font-bold text-white">⚔️ Battle Dashboard</h2>
-                                <p class="text-sm text-gray-300">Manage your competition</p>
+                                <h2 class="text-lg font-bold text-white">⚔️ Battle Dashboard</h2>
+                                <p class="text-xs text-gray-300">Manage your competition</p>
                             </div>
-                            <button id="closeDashboardBtn" class="text-white hover:text-gray-300 text-2xl">✕</button>
+                            <button id="closeDashboardBtn" class="text-white hover:text-gray-300 text-xl p-1">✕</button>
                         </div>
                     </div>
                     
                     <!-- Dashboard Content -->
-                    <div class="flex-1 overflow-y-auto">
+                    <div class="flex-1 overflow-y-auto overflow-x-hidden">
                         ${this.renderDashboardTabs()}
                     </div>
                 </div>
@@ -606,31 +606,33 @@ class Renderer {
 
     renderDashboardTabs() {
         return `
-            <div class="p-4">
+            <div class="h-full flex flex-col">
                 <!-- Tab Navigation -->
-                <div class="flex border-b-2 border-gray-200 mb-4">
-                    <button class="dashboard-tab active px-4 py-2 font-bold text-black border-b-2 border-black" data-tab="ghosts">
-                        👻 Ghost Challengers
+                <div class="flex border-b-2 border-gray-200 bg-gray-50 flex-shrink-0">
+                    <button class="dashboard-tab active flex-1 px-2 py-2 text-sm font-bold text-black border-b-2 border-black" data-tab="ghosts">
+                        👻 Ghost
                     </button>
-                    <button class="dashboard-tab px-4 py-2 font-bold text-gray-500 hover:text-black" data-tab="stats">
-                        📊 Personal Stats
+                    <button class="dashboard-tab flex-1 px-2 py-2 text-sm font-bold text-gray-500 hover:text-black" data-tab="stats">
+                        📊 Stats
                     </button>
-                    <button class="dashboard-tab px-4 py-2 font-bold text-gray-500 hover:text-black" data-tab="settings">
+                    <button class="dashboard-tab flex-1 px-2 py-2 text-sm font-bold text-gray-500 hover:text-black" data-tab="settings">
                         ⚙️ Settings
                     </button>
                 </div>
                 
                 <!-- Tab Content -->
-                <div id="ghostsTab" class="tab-content">
-                    ${this.renderGhostChallengersTab()}
-                </div>
-                
-                <div id="statsTab" class="tab-content hidden">
-                    ${this.renderPersonalStatsTab()}
-                </div>
-                
-                <div id="settingsTab" class="tab-content hidden">
-                    ${this.renderSettingsTab()}
+                <div class="flex-1 overflow-y-auto p-4">
+                    <div id="ghostsTab" class="tab-content">
+                        ${this.renderGhostChallengersTab()}
+                    </div>
+                    
+                    <div id="statsTab" class="tab-content hidden">
+                        ${this.renderPersonalStatsTab()}
+                    </div>
+                    
+                    <div id="settingsTab" class="tab-content hidden">
+                        ${this.renderSettingsTab()}
+                    </div>
                 </div>
             </div>
         `;
@@ -694,19 +696,19 @@ class Renderer {
         };
         
         return `
-            <div class="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pb-4">
+            <div class="space-y-4 overflow-x-hidden">
                 <!-- Streak & Points Overview -->
                 <div class="grid grid-cols-3 gap-2">
                     <div class="bg-gradient-to-br from-orange-500 to-red-600 text-white rounded-lg p-3 text-center">
-                        <p class="text-3xl font-bold">${currentStreak}</p>
+                        <p class="text-2xl font-bold">${currentStreak}</p>
                         <p class="text-xs">Day Streak</p>
                     </div>
                     <div class="bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-lg p-3 text-center">
-                        <p class="text-3xl font-bold">${totalPoints}</p>
+                        <p class="text-2xl font-bold">${totalPoints}</p>
                         <p class="text-xs">Total Points</p>
                     </div>
                     <div class="bg-gradient-to-br from-green-500 to-teal-600 text-white rounded-lg p-3 text-center">
-                        <p class="text-3xl font-bold">${this.app.pastChallenges?.length || 0}</p>
+                        <p class="text-2xl font-bold">${this.app.pastChallenges?.length || 0}</p>
                         <p class="text-xs">Challenges</p>
                     </div>
                 </div>
@@ -714,9 +716,9 @@ class Renderer {
                 <!-- Current Badge Status -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
                     <div class="flex items-center space-x-3">
-                        <span class="text-3xl">${badgeInfo.icon}</span>
-                        <div>
-                            <p class="font-bold text-lg">${badgeInfo.name}</p>
+                        <span class="text-3xl flex-shrink-0">${badgeInfo.icon}</span>
+                        <div class="min-w-0">
+                            <p class="font-bold text-lg truncate">${badgeInfo.name}</p>
                             <p class="text-sm text-gray-500">${currentStreak} day streak</p>
                         </div>
                     </div>
@@ -725,7 +727,7 @@ class Renderer {
                 <!-- 7-Day Activity Chart -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
                     <h4 class="font-bold text-gray-700 mb-3">Last 7 Days Activity</h4>
-                    <div id="weeklyActivityChart" class="h-40">
+                    <div id="weeklyActivityChart" class="h-40 overflow-x-hidden">
                         <p class="text-gray-500 text-sm text-center">Loading activity data...</p>
                     </div>
                 </div>
@@ -733,7 +735,7 @@ class Renderer {
                 <!-- Monthly Calendar View -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
                     <h4 class="font-bold text-gray-700 mb-3">This Month's Progress</h4>
-                    <div id="monthlyCalendar" class="grid grid-cols-7 gap-1 text-xs">
+                    <div id="monthlyCalendar" class="grid grid-cols-7 gap-1 text-xs overflow-x-hidden">
                         <p class="text-gray-500 text-sm text-center col-span-7">Loading calendar...</p>
                     </div>
                 </div>
@@ -741,7 +743,7 @@ class Renderer {
                 <!-- Global Rankings -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
                     <h4 class="font-bold text-gray-700 mb-3">🏆 Global Rankings</h4>
-                    <div id="miniLeaderboard" class="space-y-2">
+                    <div id="miniLeaderboard" class="space-y-2 overflow-x-hidden">
                         <p class="text-gray-500 text-sm">Loading rankings...</p>
                     </div>
                 </div>
@@ -749,7 +751,7 @@ class Renderer {
                 <!-- Recent Challenges -->
                 <div class="bg-white border-2 border-gray-200 rounded-lg p-4">
                     <h4 class="font-bold text-gray-700 mb-3">📊 Challenge History</h4>
-                    <div id="recentChallenges" class="space-y-2">
+                    <div id="recentChallenges" class="space-y-2 overflow-x-hidden">
                         ${this.renderRecentChallenges()}
                     </div>
                 </div>

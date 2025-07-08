@@ -227,14 +227,14 @@ class EventHandler {
                 
                 return `
                     <div class="flex justify-between items-center py-2 px-2 rounded border-2 ${borderClass} ${isCurrentUser ? 'ring-2 ring-black' : ''}">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs font-bold ${index === 0 ? 'text-yellow-600' : 'text-gray-600'}">
+                        <div class="flex items-center space-x-2 min-w-0 flex-1">
+                            <span class="text-xs font-bold ${index === 0 ? 'text-yellow-600' : 'text-gray-600'} flex-shrink-0">
                                 #${index + 1}
                             </span>
-                            <span class="text-lg">${user.badge_icon || '🍆'}</span>
-                            <span class="text-sm font-medium">${user.name || 'Unknown User'}</span>
+                            <span class="text-lg flex-shrink-0">${user.badge_icon || '🍆'}</span>
+                            <span class="text-sm font-medium truncate">${user.name || 'Unknown User'}</span>
                         </div>
-                        <span class="text-sm font-bold">${user.total_points || 0}</span>
+                        <span class="text-sm font-bold flex-shrink-0 ml-2">${user.total_points || 0}</span>
                     </div>
                 `;
             }).join('');
@@ -252,12 +252,12 @@ class EventHandler {
                 miniLeaderboard.innerHTML += `
                     <div class="border-t-2 border-gray-300 pt-2 mt-2">
                         <div class="flex justify-between items-center py-2 px-2 rounded border-2 ${borderClass} ring-2 ring-black">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-xs font-bold text-gray-600">#${currentUserRank + 1}</span>
-                                <span class="text-lg">${currentUser.badge_icon || '🍆'}</span>
-                                <span class="text-sm font-medium">${currentUser.name || 'You'}</span>
+                            <div class="flex items-center space-x-2 min-w-0 flex-1">
+                                <span class="text-xs font-bold text-gray-600 flex-shrink-0">#${currentUserRank + 1}</span>
+                                <span class="text-lg flex-shrink-0">${currentUser.badge_icon || '🍆'}</span>
+                                <span class="text-sm font-medium truncate">${currentUser.name || 'You'}</span>
                             </div>
-                            <span class="text-sm font-bold">${currentUser.total_points || 0}</span>
+                            <span class="text-sm font-bold flex-shrink-0 ml-2">${currentUser.total_points || 0}</span>
                         </div>
                     </div>
                 `;
@@ -316,10 +316,10 @@ class EventHandler {
                 });
             }
             
-            // Render the improved chart
-            const maxHeight = 120;
+            // Render the improved chart - made more compact
+            const maxHeight = 100;
             weeklyChart.innerHTML = `
-                <div class="flex items-end justify-between h-32 px-2">
+                <div class="flex items-end justify-between h-28">
                     ${days.map((day, index) => {
                         const height = day.total > 0 ? (day.completed / day.total) * maxHeight : 0;
                         const isToday = index === 6;
@@ -334,17 +334,17 @@ class EventHandler {
                         }
                         
                         return `
-                            <div class="flex-1 flex flex-col items-center mx-1">
+                            <div class="flex-1 flex flex-col items-center">
                                 <div class="w-full flex flex-col items-center">
                                     <span class="text-xs font-medium mb-1 ${day.percentage === 100 ? 'text-green-600' : 'text-gray-600'}">
                                         ${day.completed}/${day.total}
                                     </span>
-                                    <div class="w-10 ${barClass} rounded-t-lg transition-all duration-500 relative" 
+                                    <div class="w-8 ${barClass} rounded-t-lg transition-all duration-500 relative" 
                                          style="height: ${height}px">
-                                        ${day.percentage === 100 ? '<span class="absolute -top-6 left-1/2 transform -translate-x-1/2 text-lg">✅</span>' : ''}
+                                        ${day.percentage === 100 ? '<span class="absolute -top-5 left-1/2 transform -translate-x-1/2 text-sm">✅</span>' : ''}
                                     </div>
                                 </div>
-                                <div class="mt-2 text-center">
+                                <div class="mt-1 text-center">
                                     <p class="text-xs font-medium ${isToday ? 'text-black' : 'text-gray-600'}">${day.day}</p>
                                     <p class="text-xs text-gray-400">${day.date}</p>
                                 </div>
@@ -358,7 +358,7 @@ class EventHandler {
                             <span class="font-medium">${days.filter(d => d.percentage === 100).length}</span> perfect days
                         </p>
                         <p class="text-sm text-gray-600">
-                            <span class="font-medium">${days.reduce((sum, d) => sum + d.completed, 0)}</span> tasks completed
+                            <span class="font-medium">${days.reduce((sum, d) => sum + d.completed, 0)}</span> tasks done
                         </p>
                     </div>
                 </div>
@@ -386,7 +386,7 @@ class EventHandler {
             // Days of week headers
             const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
             let calendarHTML = dayHeaders.map(day => 
-                `<div class="text-center font-bold text-gray-600">${day}</div>`
+                `<div class="text-center font-bold text-gray-600 text-xs">${day}</div>`
             ).join('');
             
             // Empty cells for days before month starts
@@ -413,7 +413,7 @@ class EventHandler {
                                   percentage > 0 ? 'bg-blue-200' : 'bg-gray-100';
                     
                     calendarHTML += `
-                        <div class="aspect-square flex items-center justify-center rounded ${bgColor} ${isToday ? 'ring-2 ring-black' : ''}"
+                        <div class="aspect-square flex items-center justify-center rounded text-xs ${bgColor} ${isToday ? 'ring-2 ring-black' : ''}"
                              title="${completedCount}/${totalGoals} tasks (${percentage}%)">
                             ${day}
                         </div>
@@ -421,7 +421,7 @@ class EventHandler {
                 } else {
                     // No data or future date
                     calendarHTML += `
-                        <div class="aspect-square flex items-center justify-center rounded ${isFuture ? 'text-gray-300' : 'bg-gray-50'} ${isToday ? 'ring-2 ring-black' : ''}">
+                        <div class="aspect-square flex items-center justify-center rounded text-xs ${isFuture ? 'text-gray-300' : 'bg-gray-50'} ${isToday ? 'ring-2 ring-black' : ''}">
                             ${day}
                         </div>
                     `;
