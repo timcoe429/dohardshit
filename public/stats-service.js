@@ -160,9 +160,16 @@ class StatsService {
         const todayProgress = this.app.dailyProgress?.[dateStr] || {};
         const completedCount = Object.values(todayProgress).filter(Boolean).length;
         
-        console.log(`📊 Daily points calculation: date=${dateStr}, progress=`, todayProgress, `count=${completedCount}`);
+        // Apply boost multiplier if active
+        let totalPoints = completedCount;
+        const boostStatus = this.getBoostStatus();
+        if (boostStatus && boostStatus.active) {
+            totalPoints = Math.floor(completedCount * boostStatus.multiplier);
+        }
         
-        return completedCount;
+        console.log(`📊 Daily points calculation: date=${dateStr}, tasks=${completedCount}, boost=${boostStatus?.multiplier || 1}x, total=${totalPoints}`);
+        
+        return totalPoints;
     }
 
     calculateChallengeDays() {
@@ -518,6 +525,9 @@ class StatsService {
         // Immediately recalculate daily points and update UI
         this.stats.dailyPoints = this.calculateDailyPoints();
         this.stats.todayCompletion = this.calculateTodayCompletion();
+        
+        // Also update the total points from currentUser (which was already updated in progress.js)
+        this.stats.totalPoints = this.app.currentUser.total_points;
         
         // Update UI immediately for responsive feedback
         this.updateAllUI();

@@ -387,61 +387,64 @@ app.post('/api/progress', async (req, res) => {
     
     // Only update total points if the completion status actually changed
     if (completed !== wasAlreadyCompleted) {
-      let pointChange = completed ? 1 : -1;
+      let pointChange = 0;
       
-      // Check if user qualifies for bonus points (only when completing, not uncompleting)
-      if (completed) {
-        // Get user's current rank
-        const rankResult = await pool.query(`
-          WITH user_ranks AS (
-            SELECT id, total_points, 
-                   ROW_NUMBER() OVER (ORDER BY total_points DESC, name ASC) as rank
-            FROM users
-          )
-          SELECT rank FROM user_ranks WHERE id = $1
+      // Get user's current rank (need this for both completing and uncompleting)
+      const rankResult = await pool.query(`
+        WITH user_ranks AS (
+          SELECT id, total_points, 
+                 DENSE_RANK() OVER (ORDER BY total_points DESC) as rank
+          FROM users
+        )
+        SELECT rank FROM user_ranks WHERE id = $1
+      `, [user_id]);
+      
+      const userRank = rankResult.rows[0]?.rank || 1;
+      
+      // Calculate boost multiplier if user is NOT in first place
+      let totalMultiplier = 1;
+      if (userRank > 1) {
+        // Get user's current badge
+        const badgeResult = await pool.query(`
+          SELECT b.name 
+          FROM user_badges ub
+          JOIN badges b ON b.id = ub.badge_id
+          WHERE ub.user_id = $1 AND b.category = 'streak'
+          ORDER BY b.requirement_value DESC
+          LIMIT 1
         `, [user_id]);
         
-        const userRank = rankResult.rows[0]?.rank || 1;
+        const badgeName = badgeResult.rows[0]?.name || 'Lil Bitch';
         
-        // Only apply bonus if user is NOT in first place
-        if (userRank > 1) {
-          // Get user's current badge
-          const badgeResult = await pool.query(`
-            SELECT b.name 
-            FROM user_badges ub
-            JOIN badges b ON b.id = ub.badge_id
-            WHERE ub.user_id = $1 AND b.category = 'streak'
-            ORDER BY b.requirement_value DESC
-            LIMIT 1
-          `, [user_id]);
-          
-          const badgeName = badgeResult.rows[0]?.name || 'Lil Bitch';
-          
-          // Calculate bonus based on badge
-          let bonusPoints = 0;
-          switch(badgeName) {
-            case 'Lil Bitch':
-              bonusPoints = 1; // 1:1 bonus
-              break;
-            case 'BEAST MODE':
-              bonusPoints = 0.5; // 2:1 ratio (need 2 tasks for 1 bonus point)
-              break;
-            case 'WARRIOR':
-              bonusPoints = 0.33; // 3:1 ratio
-              break;
-            case 'SAVAGE':
-              bonusPoints = 0.25; // 4:1 ratio
-              break;
-            case 'LEGEND':
-              bonusPoints = 0; // No bonus for legends
-              break;
-          }
-          
-          // Add bonus to point change
-          pointChange += bonusPoints;
-          
-          console.log(`User ${user_id} (rank #${userRank}, badge: ${badgeName}) earned ${pointChange} points (including ${bonusPoints} bonus)`);
+        // Calculate total multiplier based on badge
+        switch(badgeName) {
+          case 'Lil Bitch':
+            totalMultiplier = 2; // 2x total (1 base + 1 bonus)
+            break;
+          case 'BEAST MODE':
+            totalMultiplier = 1.5; // 1.5x total
+            break;
+          case 'WARRIOR':
+            totalMultiplier = 1.33; // 1.33x total
+            break;
+          case 'SAVAGE':
+            totalMultiplier = 1.25; // 1.25x total
+            break;
+          case 'LEGEND':
+            totalMultiplier = 1; // No bonus for legends
+            break;
         }
+        
+        console.log(`User ${user_id} (rank #${userRank}, badge: ${badgeName}) has ${totalMultiplier}x multiplier`);
+      }
+      
+      // Apply the same multiplier for both checking and unchecking
+      if (completed) {
+        pointChange = totalMultiplier;
+        console.log(`User ${user_id} earned ${pointChange} points (${totalMultiplier}x multiplier)`);
+      } else {
+        pointChange = -totalMultiplier;
+        console.log(`User ${user_id} lost ${pointChange} points (${totalMultiplier}x multiplier)`);
       }
       
       await pool.query(

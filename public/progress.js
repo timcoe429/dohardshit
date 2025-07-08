@@ -146,10 +146,19 @@ class ProgressManager {
             );
             
             // Immediately update local total points for instant feedback
+            // Calculate boost multiplier based on current stats
+            let pointsToChange = 1;
+            if (this.app.statsService) {
+                const boostStatus = this.app.statsService.getBoostStatus();
+                if (boostStatus && boostStatus.active) {
+                    pointsToChange = boostStatus.multiplier;
+                }
+            }
+            
             if (newState) {
-                this.app.currentUser.total_points++;
+                this.app.currentUser.total_points += pointsToChange;
             } else {
-                this.app.currentUser.total_points = Math.max(0, this.app.currentUser.total_points - 1);
+                this.app.currentUser.total_points = Math.max(0, this.app.currentUser.total_points - pointsToChange);
             }
             
             // Use the centralized StatsService to sync everything
