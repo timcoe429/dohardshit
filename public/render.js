@@ -265,19 +265,6 @@ class Renderer {
     renderGoalItem(goal, index) {
         const isCompleted = this.app.progressManager.getTodayProgress()[index] || false;
         
-        // Calculate points display based on boost
-        let pointsDisplay = '+1 point';
-        if (this.app.statsService) {
-            const boostStatus = this.app.statsService.getBoostStatus();
-            if (boostStatus && boostStatus.active) {
-                const points = boostStatus.multiplier;
-                pointsDisplay = points > 1 ? `+${points} points` : '+1 point';
-                if (points > 1) {
-                    pointsDisplay += ' 🚀';
-                }
-            }
-        }
-        
         return `
             <div 
                 class="flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-300 goal-item ${
@@ -297,7 +284,6 @@ class Renderer {
                 <div class="ml-4 flex-1">
                     <p class="font-medium ${isCompleted ? 'text-green-800' : 'text-gray-800'}">${goal}</p>
                 </div>
-                ${isCompleted ? `<div class="text-green-600 font-semibold text-sm">${pointsDisplay}</div>` : ''}
             </div>
         `;
     }
