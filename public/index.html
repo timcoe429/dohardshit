@@ -232,6 +232,71 @@
                 bottom: 1rem;
                 right: 1rem;
             }
+            
+            /* === MOBILE HEADER FIX === */
+            /* Center the header content on mobile */
+            header .max-w-4xl.mx-auto {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 0.5rem;
+            }
+            
+            /* Stack logo and points vertically */
+            header .flex.items-center.justify-between {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            
+            /* Remove the points right alignment */
+            header .text-right {
+                text-align: center !important;
+            }
+            
+            /* === BATTLE DASHBOARD MOBILE FIX === */
+            /* Make slide-out dashboard full width on mobile */
+            #slideOutDashboard {
+                width: 100vw !important;
+                max-width: 100% !important;
+            }
+            
+            /* Ensure it takes full screen */
+            #slideOutDashboard .fixed {
+                left: 0;
+                right: 0;
+            }
+            
+            /* Adjust tab font sizes for mobile */
+            .dashboard-tab {
+                font-size: 0.875rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Make ghost cards stack better on mobile */
+            #ghostsTab .grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Make modals mobile-friendly */
+            .fixed.inset-0 > div {
+                margin: 1rem;
+                max-height: calc(100vh - 2rem);
+            }
+            
+            /* Improve chat window on mobile */
+            .fixed.bottom-24.right-6.w-96 {
+                width: calc(100vw - 2rem) !important;
+                right: 1rem !important;
+                left: 1rem !important;
+                height: 70vh !important;
+                bottom: 5rem !important;
+            }
+            
+            /* Template selector mobile optimization */
+            #templateModal .grid {
+                grid-template-columns: 1fr !important;
+            }
         }
     </style>
 </head>
