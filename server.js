@@ -1410,6 +1410,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Serve the install instructions page
+app.get('/install.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'install.html'));
+});
+
 // Archive completed challenge
 app.post('/api/users/:userId/archive-challenge', async (req, res) => {
   try {

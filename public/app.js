@@ -101,6 +101,23 @@ class ChallengeApp {
        this.renderer.render();
    }
    
+   // PWA detection methods
+   isStandalone() {
+       // Check if app is running as installed PWA
+       return window.matchMedia('(display-mode: standalone)').matches || 
+              window.navigator.standalone || 
+              document.referrer.includes('android-app://');
+   }
+   
+   isMobile() {
+       return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+   }
+   
+   shouldShowInstallBanner() {
+       // Show banner only on mobile browsers, not in PWA mode
+       return this.isMobile() && !this.isStandalone() && this.currentScreen === 'dashboard';
+   }
+   
    // API calls
    async loadLeaderboard() {
        try {

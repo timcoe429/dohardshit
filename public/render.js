@@ -259,6 +259,8 @@ class Renderer {
             
             <!-- Dashboard Overlay -->
             <div id="dashboardOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
+            
+            ${this.renderInstallBanner()}
         `;
     }
 
@@ -307,6 +309,40 @@ class Renderer {
         }, 10);
     }
     
+    renderInstallBanner() {
+        // Only show on mobile browsers, not in standalone PWA
+        if (!this.app.shouldShowInstallBanner()) {
+            return '';
+        }
+        
+        // Check if user has dismissed the banner
+        if (localStorage.getItem('installBannerDismissed') === 'true') {
+            return '';
+        }
+        
+        return `
+            <div id="installBanner" class="fixed bottom-0 left-0 right-0 bg-black text-white p-4 z-50 border-t-4 border-red-600">
+                <div class="flex items-center justify-between">
+                    <a href="/install.html" class="flex-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-2xl">📱</span>
+                            <div>
+                                <p class="font-bold text-lg">Install DoHardShit</p>
+                                <p class="text-sm opacity-90">Add to home screen • Works offline</p>
+                            </div>
+                        </div>
+                    </a>
+                    <button 
+                        onclick="document.getElementById('installBanner').remove(); localStorage.setItem('installBannerDismissed', 'true');"
+                        class="ml-4 text-gray-400 hover:text-white p-2"
+                    >
+                        ✕
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
     renderModal() {
         const existingModal = document.getElementById('challengeModal');
         if (existingModal) existingModal.remove();
