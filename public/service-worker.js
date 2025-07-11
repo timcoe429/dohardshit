@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dohardshit-v2';
+const CACHE_NAME = 'dohardshit-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -16,8 +16,8 @@ const urlsToCache = [
   '/stats.js',
   '/templates.js',
   '/utils.js',
-  '/icon-192.png',
-  '/icon-512.png',
+  '/icon-192.png?v=2',
+  '/icon-512.png?v=2',
   '/manifest.json'
 ];
 
