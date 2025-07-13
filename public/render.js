@@ -199,6 +199,11 @@ class Renderer {
                                 </div>
                             </div>
                             
+                            <!-- Mobile Day Indicator -->
+                            <div class="mobile-day-indicator">
+                                Day ${challengeDay} of ${this.app.activeChallenge.duration}
+                            </div>
+                            
                             <div class="p-6 space-y-3" id="goalsList">
                                 ${this.app.activeChallenge.goals.map((goal, index) => 
                                     this.renderGoalItem(goal, index)

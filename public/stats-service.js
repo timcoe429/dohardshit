@@ -420,6 +420,12 @@ class StatsService {
             }
             
             console.log('📊 PROGRESS BAR UPDATED:', { challengeDay, challengeProgress, duration });
+            
+            // Update mobile day indicator
+            const mobileIndicator = document.querySelector('.mobile-day-indicator');
+            if (mobileIndicator) {
+                mobileIndicator.textContent = `Day ${challengeDay} of ${duration}`;
+            }
         }
     }
 
