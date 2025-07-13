@@ -182,8 +182,11 @@ class Renderer {
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
                             <div class="p-6 border-b border-gray-200">
                                 <div class="flex items-center justify-between">
-                                    <div>
-                                        <h2 class="text-xl font-bold text-gray-800">${this.app.activeChallenge.name}</h2>
+                                    <div class="flex-1">
+                                        <div class="challenge-header-mobile">
+                                            <h2 class="text-xl font-bold text-gray-800">${this.app.activeChallenge.name}</h2>
+                                            <span class="mobile-day-count">Day ${challengeDay} of ${this.app.activeChallenge.duration}</span>
+                                        </div>
                                         <p class="text-sm text-gray-600 mt-1">Day ${challengeDay} of ${this.app.activeChallenge.duration} • ${challengeProgress}% complete</p>
                                     </div>
                                     <div class="text-sm text-gray-500">
@@ -197,11 +200,6 @@ class Renderer {
                                          style="width: ${challengeProgress}%">
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <!-- Mobile Day Indicator -->
-                            <div class="mobile-day-indicator">
-                                Day ${challengeDay} of ${this.app.activeChallenge.duration}
                             </div>
                             
                             <div class="p-6 space-y-3" id="goalsList">

@@ -174,23 +174,23 @@
                 display: none !important;
             }
             
-            /* Show mobile day indicator */
-            .mobile-day-indicator {
-                display: block !important;
-                background: #f3f4f6;
-                padding: 0.5rem 1rem;
-                border-radius: 0.5rem;
-                font-size: 0.875rem;
-                font-weight: 600;
-                color: #374151;
-                text-align: center;
-                margin-bottom: 1rem;
+            /* Show day count inline with challenge title on mobile */
+            .challenge-header-mobile {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+            }
+            
+            .mobile-day-count {
+                font-size: 0.875rem !important;
+                color: #6b7280 !important;
+                font-weight: 500 !important;
             }
         }
         
-        /* Hide mobile day indicator on desktop */
+        /* Hide mobile day count on desktop */
         @media (min-width: 769px) {
-            .mobile-day-indicator {
+            .mobile-day-count {
                 display: none !important;
             }
             
