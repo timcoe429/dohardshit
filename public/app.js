@@ -40,6 +40,9 @@ class ChallengeApp {
        window.app = this;
        // Make statsService globally accessible for debugging
        window.stats = this.statsService;
+       
+       // Setup service worker update detection
+       this.setupServiceWorkerUpdates();
    }
 
        async init() {
@@ -747,6 +750,59 @@ class ChallengeApp {
        } catch (error) {
            console.error('Failed to update ghosts:', error);
        }
+   }
+   
+   setupServiceWorkerUpdates() {
+       if ('serviceWorker' in navigator) {
+           navigator.serviceWorker.addEventListener('controllerchange', () => {
+               console.log('SW: New service worker activated');
+               // Show update notification
+               this.showUpdateNotification();
+           });
+           
+           // Check for updates ONLY when user opens/returns to app
+           window.addEventListener('focus', () => {
+               this.checkForUpdates();
+           });
+           
+           // Also check on page load (when app first opens)
+           window.addEventListener('load', () => {
+               this.checkForUpdates();
+           });
+       }
+   }
+   
+   async checkForUpdates() {
+       if ('serviceWorker' in navigator) {
+           const registration = await navigator.serviceWorker.getRegistration();
+           if (registration) {
+               registration.update();
+           }
+       }
+   }
+   
+   showUpdateNotification() {
+       const notification = document.createElement('div');
+       notification.innerHTML = `
+           <div class="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50" style="animation: slideInFromRight 0.3s ease-out;">
+               <div class="flex items-center space-x-2">
+                   <span class="text-lg">🔄</span>
+                   <div>
+                       <p class="font-bold">App Updated!</p>
+                       <p class="text-sm">Latest changes are now available</p>
+                   </div>
+                   <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200">✕</button>
+               </div>
+           </div>
+       `;
+       document.body.appendChild(notification);
+       
+       // Auto-remove after 5 seconds
+       setTimeout(() => {
+           if (notification.parentElement) {
+               notification.remove();
+           }
+       }, 5000);
    }
 }
 

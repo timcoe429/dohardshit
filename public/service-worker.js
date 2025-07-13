@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dohardshit-v3';
+const CACHE_NAME = 'dohardshit-v4';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -23,46 +23,77 @@ const urlsToCache = [
 
 // Install event - cache files
 self.addEventListener('install', event => {
+  console.log('SW: Installing new version');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
+        console.log('SW: Opened cache');
         return cache.addAll(urlsToCache);
       })
   );
+  // Force the waiting service worker to become the active service worker
+  self.skipWaiting();
 });
 
-// Fetch event - serve from cache when offline
+// Fetch event - network first for HTML/JS, cache first for assets
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
-      .catch(() => {
-        // Offline fallback for API calls
-        if (event.request.url.includes('/api/')) {
-          return new Response(
-            JSON.stringify({ error: 'You are offline' }),
-            { headers: { 'Content-Type': 'application/json' } }
-          );
-        }
-      })
-  );
+  const url = new URL(event.request.url);
+  
+  // Network first for HTML, JS, and CSS files (to get updates quickly)
+  if (url.pathname.endsWith('.html') || url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname === '/') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // If network succeeds, update cache and return response
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => cache.put(event.request, responseClone));
+          }
+          return response;
+        })
+        .catch(() => {
+          // If network fails, serve from cache
+          return caches.match(event.request);
+        })
+    );
+  } 
+  // Cache first for assets (images, etc.)
+  else {
+    event.respondWith(
+      caches.match(event.request)
+        .then(response => {
+          return response || fetch(event.request);
+        })
+        .catch(() => {
+          // Offline fallback for API calls
+          if (event.request.url.includes('/api/')) {
+            return new Response(
+              JSON.stringify({ error: 'You are offline' }),
+              { headers: { 'Content-Type': 'application/json' } }
+            );
+          }
+        })
+    );
+  }
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', event => {
+  console.log('SW: Activating new version');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
+            console.log('SW: Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      // Take control of all clients immediately
+      return self.clients.claim();
     })
   );
 }); 
