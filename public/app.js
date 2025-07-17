@@ -49,8 +49,8 @@ class ChallengeApp {
         // Check for saved login first
         const hasAutoLoggedIn = await this.authManager.checkSavedLogin();
         
-        // Only render login screen if no saved login
-        if (!hasAutoLoggedIn) {
+        // Only render login screen if no saved login OR if auto-login failed
+        if (!hasAutoLoggedIn || !this.currentUser) {
             this.render();
         } else {
             // Load initial data

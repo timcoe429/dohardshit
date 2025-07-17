@@ -36,6 +36,14 @@ class AuthManager {
             
             // Auto-login with saved data
             await this.handleLogin(userData.name, true);
+            
+            // Check if login actually succeeded
+            if (!this.app.currentUser) {
+                console.log('Auto-login failed, clearing saved data');
+                this.clearLoginData();
+                return false;
+            }
+            
             return true;
         } catch (err) {
             console.error('Failed to restore login:', err);
@@ -77,6 +85,9 @@ class AuthManager {
     async handleLogin(name, isAutoLogin = false) {
         // Get password from input if not auto-login
         const password = isAutoLogin ? '' : (document.getElementById('passwordInput')?.value || '');
+        
+        // Always clear any existing user data first to prevent conflicts
+        this.forceLogout();
         
         const user = await this.createUser(name, password);
         if (user && !user.error) {
@@ -229,16 +240,61 @@ class AuthManager {
         }, 5000);
     }
     
-    handleLogout() {
-        // Clear saved login data when logging out
+    forceLogout() {
+        // Clear ALL user data without rendering - used for clean switching
         this.clearLoginData();
         
         this.app.currentUser = null;
         this.app.challenges = [];
         this.app.activeChallenge = null;
         this.app.dailyProgress = {};
-        this.app.userStats = { totalPoints: 0 };
+        this.app.userStats = { 
+            totalPoints: 0, 
+            rank: 0, 
+            total_challenges: 0, 
+            total_completed_goals: 0, 
+            current_streak: 0 
+        };
+        this.app.leaderboard = [];
+        this.app.pastChallenges = [];
+        this.app.currentGhosts = [];
+        
+        // Reset stats service
+        if (this.app.statsService) {
+            this.app.statsService.reset();
+        }
+    }
+
+    handleLogout() {
+        // Clear saved login data when logging out
+        this.forceLogout();
         this.app.currentScreen = 'login';
         this.app.render();
+    }
+    
+    // Debug method - can be called from console: window.app.authManager.forceFullReset()
+    forceFullReset() {
+        console.log('🔄 FORCE RESET: Clearing ALL app data...');
+        
+        // Clear localStorage completely
+        try {
+            localStorage.removeItem('challengeApp_user');
+            // Clear any other cached data that might exist
+            for (let key in localStorage) {
+                if (key.startsWith('challengeApp_') || key.startsWith('dohardshit_')) {
+                    localStorage.removeItem(key);
+                }
+            }
+            console.log('✅ LocalStorage cleared');
+        } catch (e) {
+            console.error('Failed to clear localStorage:', e);
+        }
+        
+        // Clear all app state
+        this.forceLogout();
+        
+        // Force reload the page
+        console.log('🔄 Reloading page...');
+        window.location.reload();
     }
 }

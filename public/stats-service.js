@@ -21,6 +21,24 @@ class StatsService {
         this.lastUpdate = 0;
         this.updateThrottle = 1000; // 1 second
     }
+    
+    reset() {
+        // Reset all stats to initial state for clean user switching
+        this.stats = {
+            totalPoints: 0,
+            dailyPoints: 0,
+            challengeDays: 0,
+            challengeProgress: 0,
+            todayCompletion: 0,
+            currentBadge: null,
+            currentStreak: 0,
+            rank: 1,
+            totalChallenges: 0,
+            completedGoals: 0
+        };
+        this.lastUpdate = 0;
+        console.log('📊 StatsService reset to initial state');
+    }
 
     // ==========================================
     // CORE SYNC METHODS
