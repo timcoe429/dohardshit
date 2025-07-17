@@ -214,6 +214,23 @@
                 display: none !important;
             }
             
+            /* Restore template grid on desktop */
+            #templateModal .grid {
+                grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+            }
+            
+            @media (min-width: 768px) {
+                #templateModal .grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                }
+            }
+            
+            @media (min-width: 1024px) {
+                #templateModal .grid {
+                    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                }
+            }
+            
             /* Simple header - just title and points */
             header .max-w-4xl {
                 padding: 1rem;
