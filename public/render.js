@@ -189,8 +189,17 @@ class Renderer {
                                         </div>
                                         <p class="text-sm text-gray-600 mt-1">Day ${challengeDay} of ${this.app.activeChallenge.duration} • ${challengeProgress}% complete</p>
                                     </div>
-                                    <div class="text-sm text-gray-500">
-                                        Complete your daily goals to earn points
+                                    <div class="flex items-center space-x-2">
+                                        <div class="text-sm text-gray-500">
+                                            Complete your daily goals to earn points
+                                        </div>
+                                        <button
+                                            id="endChallengeBtn"
+                                            class="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                                            title="End this challenge"
+                                        >
+                                            End Challenge
+                                        </button>
                                     </div>
                                 </div>
                                 
@@ -221,6 +230,8 @@ class Renderer {
                                 CREATE NEW CHALLENGE
                             </button>
                         </div>
+                        
+                        ${this.renderScheduledChallenges()}
                     `}
                     
                     ${this.renderPastChallengesTable()}
@@ -264,6 +275,56 @@ class Renderer {
             <div id="dashboardOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
             
             ${this.renderInstallBanner()}
+        `;
+    }
+
+    renderScheduledChallenges() {
+        if (!this.app.challenges || this.app.challenges.length === 0) return '';
+        
+        const now = new Date();
+        const scheduledChallenges = this.app.challenges.filter(c => {
+            const startDate = new Date(c.start_date);
+            return startDate > now; // Future start date
+        });
+        
+        if (scheduledChallenges.length === 0) return '';
+        
+        return `
+            <div class="bg-blue-50 rounded-xl border border-blue-200 p-6 mb-6">
+                <h3 class="text-lg font-bold text-blue-800 mb-4">📅 Scheduled Challenges</h3>
+                <div class="space-y-3">
+                    ${scheduledChallenges.map(challenge => {
+                        const startDate = new Date(challenge.start_date);
+                        const daysUntilStart = Math.ceil((startDate - now) / (1000 * 60 * 60 * 24));
+                        
+                        return `
+                            <div class="bg-white rounded-lg p-4 border border-blue-200">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="font-bold text-gray-800">${challenge.name}</h4>
+                                        <p class="text-sm text-gray-600">
+                                            ${challenge.goals.length} goals • ${challenge.duration} days
+                                        </p>
+                                        <p class="text-sm text-blue-600 font-medium">
+                                            Starts ${startDate.toLocaleDateString()} 
+                                            ${daysUntilStart === 1 ? '(Tomorrow)' : 
+                                              daysUntilStart === 0 ? '(Today)' : 
+                                              `(in ${daysUntilStart} days)`}
+                                        </p>
+                                    </div>
+                                    <button 
+                                        onclick="window.app.deleteScheduledChallenge(${challenge.id})"
+                                        class="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                                        title="Delete scheduled challenge"
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
         `;
     }
 
@@ -376,6 +437,18 @@ class Renderer {
                                 min="1"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                            <input 
+                                type="date" 
+                                id="challengeStartDate"
+                                value="${this.app.newChallenge.startDate || new Date().toISOString().split('T')[0]}"
+                                min="${new Date().toISOString().split('T')[0]}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <p class="text-xs text-gray-500 mt-1">Challenge will start at midnight on this date</p>
                         </div>
                         
                         <div>

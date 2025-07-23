@@ -44,6 +44,7 @@ class EventHandler {
         const leaderboardBtn = document.getElementById('leaderboardBtn');
         const userMgmtBtn = document.getElementById('userMgmtBtn');
         const statsBtn = document.getElementById('statsBtn');
+        const endChallengeBtn = document.getElementById('endChallengeBtn');
         
         // Slide-out Dashboard Events
         const slideOutMenuBtn = document.getElementById('slideOutMenuBtn');
@@ -137,6 +138,12 @@ class EventHandler {
         if (userMgmtBtn) {
             userMgmtBtn.addEventListener('click', () => {
                 this.app.showUserManagement();
+            });
+        }
+
+        if (endChallengeBtn) {
+            endChallengeBtn.addEventListener('click', () => {
+                this.app.showEndChallengeModal();
             });
         }
     }
@@ -444,6 +451,7 @@ class EventHandler {
         const createBtn = document.getElementById('createChallengeBtn');
         const nameInput = document.getElementById('challengeName');
         const durationInput = document.getElementById('challengeDuration');
+        const startDateInput = document.getElementById('challengeStartDate');
         
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => {
@@ -466,6 +474,12 @@ class EventHandler {
         if (durationInput) {
             durationInput.addEventListener('input', (e) => {
                 this.app.newChallenge.duration = parseInt(e.target.value) || 7;
+            });
+        }
+
+        if (startDateInput) {
+            startDateInput.addEventListener('change', (e) => {
+                this.app.newChallenge.startDate = e.target.value;
             });
         }
         

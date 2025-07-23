@@ -331,15 +331,40 @@ app.get('/api/users/:userId/challenges', async (req, res) => {
 // Create new challenge
 app.post('/api/challenges', async (req, res) => {
   try {
-    const { user_id, name, duration, goals } = req.body;
+    const { user_id, name, duration, goals, start_date } = req.body;
+    const startDate = start_date || new Date().toISOString().split('T')[0];
     const result = await pool.query(
-      'INSERT INTO challenges (user_id, name, duration, goals) VALUES ($1, $2, $3, $4) RETURNING *',
-      [user_id, name, duration, goals]
+      'INSERT INTO challenges (user_id, name, duration, goals, start_date) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [user_id, name, duration, goals, startDate]
     );
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Create challenge error:', err);
     res.status(500).json({ error: 'Failed to create challenge' });
+  }
+});
+
+// Delete challenge
+app.delete('/api/challenges/:challengeId', async (req, res) => {
+  try {
+    const { challengeId } = req.params;
+    
+    // Delete related progress data first
+    await pool.query('DELETE FROM daily_progress_v2 WHERE challenge_id = $1', [challengeId]);
+    await pool.query('DELETE FROM daily_progress WHERE challenge_id = $1', [challengeId]);
+    await pool.query('DELETE FROM daily_progress_summary WHERE challenge_id = $1', [challengeId]);
+    
+    // Delete the challenge
+    const result = await pool.query('DELETE FROM challenges WHERE id = $1 RETURNING *', [challengeId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+    
+    res.json({ success: true, message: 'Challenge deleted successfully' });
+  } catch (err) {
+    console.error('Delete challenge error:', err);
+    res.status(500).json({ error: 'Failed to delete challenge' });
   }
 });
 

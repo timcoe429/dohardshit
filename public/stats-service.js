@@ -193,19 +193,19 @@ class StatsService {
     calculateChallengeDays() {
         if (!this.app.activeChallenge) return 0;
         
-        const createdAt = new Date(this.app.activeChallenge.created_at);
+        const startDate = new Date(this.app.activeChallenge.start_date || this.app.activeChallenge.created_at);
         const now = new Date();
         
         // Simplified calculation - just use local timezone
         // Set both to midnight for fair day comparison
-        const createdDay = new Date(createdAt);
-        createdDay.setHours(0, 0, 0, 0);
+        const startDay = new Date(startDate);
+        startDay.setHours(0, 0, 0, 0);
         
         const currentDay = new Date(now);
         currentDay.setHours(0, 0, 0, 0);
         
         // Calculate difference in days
-        const timeDiff = currentDay.getTime() - createdDay.getTime();
+        const timeDiff = currentDay.getTime() - startDay.getTime();
         const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
         
         // Ensure minimum day 1, maximum duration

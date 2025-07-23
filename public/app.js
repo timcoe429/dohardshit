@@ -16,7 +16,7 @@ class ChallengeApp {
            current_streak: 0 
        };
        this.showCreateChallenge = false;
-       this.newChallenge = { name: '', duration: 7, goals: [''] };
+       this.newChallenge = { name: '', duration: 7, goals: [''], startDate: '' };
        this.leaderboard = [];
        this.showLeaderboard = false;
        this.showUserMgmt = false;
@@ -62,10 +62,14 @@ class ChallengeApp {
             
             // Find and set active challenge (if any)
             const activeChallenge = challenges.find(c => {
-                const createdAt = new Date(c.created_at);
+                const startDate = new Date(c.start_date);
                 const now = new Date();
-                const daysPassed = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
-                return daysPassed < c.duration;
+                const daysPassed = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+                
+                // Challenge is active if:
+                // 1. Start date has passed (daysPassed >= 0)
+                // 2. Challenge hasn't exceeded its duration
+                return daysPassed >= 0 && daysPassed < c.duration;
             });
             this.activeChallenge = activeChallenge;
             
@@ -176,7 +180,7 @@ class ChallengeApp {
    
    hideCreateChallengeModal() {
        this.showCreateChallenge = false;
-       this.newChallenge = { name: '', duration: 7, goals: [''] };
+       this.newChallenge = { name: '', duration: 7, goals: [''], startDate: '' };
        const modal = document.getElementById('challengeModal');
        if (modal) {
            modal.remove();
@@ -217,6 +221,96 @@ class ChallengeApp {
        // Refresh user stats before showing
        await this.loadUserStats();
        this.statsManager.showModal();
+   }
+
+   // End challenge modal
+   showEndChallengeModal() {
+       if (!this.activeChallenge) return;
+       
+       const modalHTML = `
+           <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" id="endChallengeModal">
+               <div class="bg-white rounded-xl p-6 w-full max-w-md" style="animation: slideInFromBottom 0.3s ease-out;">
+                   <div class="flex items-center justify-between mb-4">
+                       <h3 class="text-lg font-bold text-gray-800">End Challenge</h3>
+                       <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600 text-2xl">✕</button>
+                   </div>
+                   
+                   <div class="mb-6">
+                       <p class="text-gray-600 mb-2">Are you sure you want to end "<strong>${this.activeChallenge.name}</strong>"?</p>
+                       <p class="text-sm text-gray-500">This will archive the challenge and reset your points. This action cannot be undone.</p>
+                   </div>
+                   
+                   <div class="flex space-x-3">
+                       <button 
+                           onclick="this.closest('.fixed').remove()" 
+                           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                       >
+                           Cancel
+                       </button>
+                       <button 
+                           onclick="window.app.endChallenge()" 
+                           class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-bold"
+                       >
+                           End Challenge
+                       </button>
+                   </div>
+               </div>
+           </div>
+       `;
+       
+       document.body.insertAdjacentHTML('beforeend', modalHTML);
+   }
+
+   async endChallenge() {
+       if (!this.activeChallenge) return;
+       
+       try {
+           // Archive the current challenge
+           await this.challengeManager.archiveChallenge(this.activeChallenge);
+           
+           // Clear the active challenge
+           this.activeChallenge = null;
+           this.challenges = [];
+           
+           // Reset points and reload user data
+           await this.loadUserData();
+           
+           // Close modal and re-render
+           const modal = document.getElementById('endChallengeModal');
+           if (modal) modal.remove();
+           
+           this.render();
+           
+           // Show success message
+           this.showNotification('Challenge ended and archived successfully!', 'success');
+           
+       } catch (error) {
+           console.error('Error ending challenge:', error);
+           this.showNotification('Failed to end challenge. Please try again.', 'error');
+       }
+   }
+
+   async deleteScheduledChallenge(challengeId) {
+       try {
+           const response = await fetch(`/api/challenges/${challengeId}`, {
+               method: 'DELETE'
+           });
+           
+           if (response.ok) {
+               // Remove from local challenges array
+               this.challenges = this.challenges.filter(c => c.id !== challengeId);
+               
+               // Re-render to update UI
+               this.render();
+               
+               this.showNotification('Scheduled challenge deleted successfully!', 'success');
+           } else {
+               throw new Error('Failed to delete challenge');
+           }
+       } catch (error) {
+           console.error('Error deleting scheduled challenge:', error);
+           this.showNotification('Failed to delete scheduled challenge. Please try again.', 'error');
+       }
    }
    
    hideStatsModal() {

@@ -38,7 +38,8 @@ class ChallengeManager {
                 user_id: this.app.currentUser.id,
                 name: name,
                 duration: this.app.newChallenge.duration,
-                goals: validGoals
+                goals: validGoals,
+                start_date: this.app.newChallenge.startDate || new Date().toISOString().split('T')[0]
             };
             
             try {
@@ -108,15 +109,50 @@ class ChallengeManager {
         return currentDay >= this.app.activeChallenge.duration;
     }
     
+    // Archive any challenge (manually ended or completed)
+    async archiveChallenge(challenge) {
+        if (!challenge) return;
+        
+        try {
+            // Calculate challenge statistics
+            const stats = await this.calculateChallengeStats(challenge);
+            
+            // Archive the challenge
+            await fetch(`/api/users/${this.app.currentUser.id}/archive-challenge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    challengeId: challenge.id,
+                    challengeName: challenge.name,
+                    duration: challenge.duration,
+                    totalGoals: challenge.goals.length,
+                    pointsEarned: stats.pointsEarned,
+                    pointsPossible: stats.pointsPossible,
+                    completionPercentage: stats.completionPercentage,
+                    startedAt: challenge.created_at
+                })
+            });
+            
+            console.log('Challenge archived successfully');
+            return true;
+        } catch (error) {
+            console.error('Error archiving challenge:', error);
+            throw error;
+        }
+    }
+
     // Archive completed challenge and reset points
     async archiveCompletedChallenge() {
         if (!this.app.activeChallenge || !this.isChallengeComplete()) return;
         
         try {
-            // Calculate challenge statistics
+            // Use the generic archive method
+            await this.archiveChallenge(this.app.activeChallenge);
+            
+            // Legacy code for backward compatibility
             const stats = await this.calculateChallengeStats();
             
-            // Archive the challenge
+            // Archive the challenge (keeping old call for now)
             await fetch(`/api/users/${this.app.currentUser.id}/archive-challenge`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -150,26 +186,26 @@ class ChallengeManager {
     }
     
     // Calculate challenge statistics
-    async calculateChallengeStats() {
-        if (!this.app.activeChallenge) return { pointsEarned: 0, pointsPossible: 0, completionPercentage: 0 };
+    async calculateChallengeStats(challenge = null) {
+        const targetChallenge = challenge || this.app.activeChallenge;
+        if (!targetChallenge) return { pointsEarned: 0, pointsPossible: 0, completionPercentage: 0 };
         
         try {
-            const challenge = this.app.activeChallenge;
-            const startDate = new Date(challenge.created_at);
+            const startDate = new Date(targetChallenge.created_at);
             const endDate = new Date(startDate);
-            endDate.setDate(startDate.getDate() + challenge.duration - 1);
+            endDate.setDate(startDate.getDate() + targetChallenge.duration - 1);
             
             let totalPointsEarned = 0;
-            let totalPointsPossible = challenge.duration * challenge.goals.length;
+            let totalPointsPossible = targetChallenge.duration * targetChallenge.goals.length;
             
             // Get progress for each day of the challenge
-            for (let day = 0; day < challenge.duration; day++) {
+            for (let day = 0; day < targetChallenge.duration; day++) {
                 const date = new Date(startDate);
                 date.setDate(startDate.getDate() + day);
                 const dateStr = date.toISOString().split('T')[0];
                 
                 try {
-                    const response = await fetch(`/api/progress/${this.app.currentUser.id}/${challenge.id}/${dateStr}`);
+                    const response = await fetch(`/api/progress/${this.app.currentUser.id}/${targetChallenge.id}/${dateStr}`);
                     if (response.ok) {
                         const progress = await response.json();
                         const completed = Object.values(progress).filter(Boolean).length;
