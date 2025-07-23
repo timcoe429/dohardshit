@@ -193,7 +193,18 @@ class StatsService {
     calculateChallengeDays() {
         if (!this.app.activeChallenge) return 0;
         
-        const startDate = new Date(this.app.activeChallenge.start_date || this.app.activeChallenge.created_at);
+        const dateStr = this.app.activeChallenge.start_date || this.app.activeChallenge.created_at;
+        if (!dateStr) {
+            console.warn('No start_date or created_at found for challenge:', this.app.activeChallenge);
+            return 1; // Default to day 1
+        }
+        
+        const startDate = new Date(dateStr);
+        if (isNaN(startDate.getTime())) {
+            console.warn('Invalid date found:', dateStr);
+            return 1; // Default to day 1
+        }
+        
         const now = new Date();
         
         // For today's date, compare just the date part (ignore time)
@@ -242,8 +253,11 @@ class StatsService {
 
     calculateTodayCompletion() {
         if (!this.app.activeChallenge) return 0;
+        const goals = this.app.activeChallenge.goals || [];
+        if (goals.length === 0) return 0;
+        
         const dailyPoints = this.calculateDailyPoints();
-        const totalGoals = this.app.activeChallenge.goals.length;
+        const totalGoals = goals.length;
         return Math.round((dailyPoints / totalGoals) * 100);
     }
 
