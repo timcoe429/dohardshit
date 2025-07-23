@@ -206,11 +206,18 @@ class ChallengeApp {
    
    // Goal management
    addGoal() {
+       if (!this.newChallenge.goals) {
+           this.newChallenge.goals = [''];
+       }
        this.newChallenge.goals.push('');
        this.renderer.updateModalGoals();
    }
    
    removeGoal(index) {
+       if (!this.newChallenge.goals) {
+           this.newChallenge.goals = [''];
+           return;
+       }
        if (this.newChallenge.goals.length > 1) {
            this.newChallenge.goals.splice(index, 1);
            this.renderer.updateModalGoals();
@@ -218,6 +225,9 @@ class ChallengeApp {
    }
    
    updateGoal(index, value) {
+       if (!this.newChallenge.goals) {
+           this.newChallenge.goals = [''];
+       }
        this.newChallenge.goals[index] = value;
    }
    

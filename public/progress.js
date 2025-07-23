@@ -67,7 +67,7 @@ class ProgressManager {
         }
         
         // Initialize all goals as uncompleted first
-        this.app.activeChallenge.goals.forEach((goal, index) => {
+        (this.app.activeChallenge.goals || []).forEach((goal, index) => {
             this.app.dailyProgress[today][index] = false;
         });
         

@@ -212,7 +212,7 @@ class Renderer {
                             </div>
                             
                             <div class="p-6 space-y-3" id="goalsList">
-                                ${this.app.activeChallenge.goals.map((goal, index) => 
+                                ${(this.app.activeChallenge.goals || []).map((goal, index) => 
                                     this.renderGoalItem(goal, index)
                                 ).join('')}
                             </div>
@@ -454,7 +454,7 @@ class Renderer {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Daily Goals</label>
                             <div class="space-y-2" id="goalsList">
-                                ${this.app.newChallenge.goals.map((goal, index) => `
+                                ${(this.app.newChallenge.goals || ['']).map((goal, index) => `
                                     <div class="flex items-center space-x-2">
                                         <input 
                                             type="text" 
@@ -463,7 +463,7 @@ class Renderer {
                                             class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 goal-input"
                                             placeholder="Goal ${index + 1}"
                                         />
-                                        ${this.app.newChallenge.goals.length > 1 ? `
+                                        ${(this.app.newChallenge.goals || ['']).length > 1 ? `
                                             <button class="p-2 text-red-500 hover:text-red-700 remove-goal" data-goal-index="${index}">
                                                 <span>🗑️</span>
                                             </button>
@@ -600,7 +600,7 @@ class Renderer {
         const goalsList = document.getElementById('goalsList');
         if (goalsList) {
             goalsList.innerHTML = `
-                ${this.app.newChallenge.goals.map((goal, index) => `
+                ${(this.app.newChallenge.goals || ['']).map((goal, index) => `
                     <div class="flex items-center space-x-2">
                         <input 
                             type="text" 
@@ -609,7 +609,7 @@ class Renderer {
                             class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 goal-input"
                             placeholder="Goal ${index + 1}"
                         />
-                        ${this.app.newChallenge.goals.length > 1 ? `
+                        ${(this.app.newChallenge.goals || ['']).length > 1 ? `
                             <button class="p-2 text-red-500 hover:text-red-700 remove-goal" data-goal-index="${index}">
                                 <span>🗑️</span>
                             </button>

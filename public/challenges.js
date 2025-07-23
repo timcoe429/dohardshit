@@ -31,7 +31,7 @@ class ChallengeManager {
     
     async createChallenge() {
         const name = this.app.newChallenge.name.trim();
-        const validGoals = this.app.newChallenge.goals.filter(g => g.trim());
+        const validGoals = (this.app.newChallenge.goals || ['']).filter(g => g.trim());
         
         if (name && validGoals.length > 0 && this.app.currentUser) {
             const challengeData = {
