@@ -240,6 +240,19 @@ async function initDB() {
     } catch (err) {
       console.error('Challenges migration error:', err);
     }
+    
+    // Migration: Add user_id and goals columns to challenges if they don't exist
+    try {
+      await pool.query(`
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)
+      `);
+      await pool.query(`
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS goals TEXT[]
+      `);
+      console.log('Challenges user_id and goals columns migration completed');
+    } catch (err) {
+      console.error('Challenges user_id/goals migration error:', err);
+    }
   } catch (err) {
     console.error('Database initialization error:', err);
     throw err;
