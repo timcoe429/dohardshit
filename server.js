@@ -381,6 +381,27 @@ app.delete('/api/challenges/:challengeId', async (req, res) => {
   }
 });
 
+// Mark challenge as completed
+app.post('/api/challenges/:challengeId/complete', async (req, res) => {
+  try {
+    const { challengeId } = req.params;
+    
+    const result = await pool.query(
+      'UPDATE challenges SET status = $1 WHERE id = $2 RETURNING *',
+      ['completed', challengeId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+    
+    res.json({ success: true, message: 'Challenge marked as completed' });
+  } catch (err) {
+    console.error('Complete challenge error:', err);
+    res.status(500).json({ error: 'Failed to complete challenge' });
+  }
+});
+
 // Get daily progress
 app.get('/api/progress/:userId/:challengeId/:date', async (req, res) => {
   try {

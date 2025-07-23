@@ -64,12 +64,29 @@ class ChallengeApp {
             const activeChallenge = challenges.find(c => {
                 const startDate = new Date(c.start_date);
                 const now = new Date();
-                const daysPassed = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+                
+                // For today's date, compare just the date part (ignore time)
+                const todayStr = now.toISOString().split('T')[0];
+                const startDateStr = startDate.toISOString().split('T')[0];
+                
+                let daysPassed;
+                if (startDateStr === todayStr) {
+                    // If start date is today, challenge is active immediately
+                    daysPassed = 0;
+                } else {
+                    // For future/past dates, use midnight-to-midnight calculation
+                    const startMidnight = new Date(startDate);
+                    startMidnight.setHours(0, 0, 0, 0);
+                    const nowMidnight = new Date(now);
+                    nowMidnight.setHours(0, 0, 0, 0);
+                    daysPassed = Math.floor((nowMidnight - startMidnight) / (1000 * 60 * 60 * 24));
+                }
                 
                 // Challenge is active if:
                 // 1. Start date has passed (daysPassed >= 0)
                 // 2. Challenge hasn't exceeded its duration
-                return daysPassed >= 0 && daysPassed < c.duration;
+                // 3. Status is active (not completed)
+                return daysPassed >= 0 && daysPassed < c.duration && c.status === 'active';
             });
             this.activeChallenge = activeChallenge;
             
@@ -265,15 +282,29 @@ class ChallengeApp {
        if (!this.activeChallenge) return;
        
        try {
+           const challengeId = this.activeChallenge.id;
+           
            // Archive the current challenge
            await this.challengeManager.archiveChallenge(this.activeChallenge);
            
+           // Mark challenge as completed in database
+           await fetch(`/api/challenges/${challengeId}/complete`, {
+               method: 'POST'
+           });
+           
+           // Remove the ended challenge from challenges array
+           this.challenges = this.challenges.filter(c => c.id !== challengeId);
+           
            // Clear the active challenge
            this.activeChallenge = null;
-           this.challenges = [];
            
            // Reset points and reload user data
            await this.loadUserData();
+           
+           // Reload past challenges to show the newly archived one
+           if (this.currentUser?.id) {
+               this.pastChallenges = await this.challengeManager.loadPastChallenges(this.currentUser.id);
+           }
            
            // Close modal and re-render
            const modal = document.getElementById('endChallengeModal');
