@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dohardshit-v4';
+const CACHE_NAME = 'dohardshit-v5';
 const urlsToCache = [
   '/',
   '/index.html',

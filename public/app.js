@@ -1,6 +1,10 @@
 // app.js - Main controller (now only ~200 lines!)
 class ChallengeApp {
    constructor() {
+       // Version for cache busting
+       this.version = 'v5.0.1';
+       console.log(`🚀 DOHARDSHIT App ${this.version} loaded`);
+       
        // State
        this.currentUser = null;
        this.currentScreen = 'login';
