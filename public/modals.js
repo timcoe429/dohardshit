@@ -221,13 +221,7 @@ class ModalManager {
     }
 
     attachModalGoalEvents() {
-        const addGoalBtn = document.getElementById('addGoalBtn');
-        
-        if (addGoalBtn) {
-            addGoalBtn.addEventListener('click', () => {
-                this.addGoal();
-            });
-        }
+        // Note: addGoalBtn event listener is handled by events.js to avoid duplicate calls
         
         document.querySelectorAll('.goal-input').forEach(input => {
             input.addEventListener('input', (e) => {
