@@ -232,7 +232,8 @@ async function initDB() {
       await pool.query(`
         ALTER TABLE challenges 
         ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id),
-        ADD COLUMN IF NOT EXISTS goals TEXT[]
+        ADD COLUMN IF NOT EXISTS goals TEXT[],
+        ADD COLUMN IF NOT EXISTS start_date DATE
       `);
               console.log('Database migration completed');
     } catch (err) {
@@ -247,6 +248,16 @@ async function initDB() {
       console.log('Challenges status column migration completed');
     } catch (err) {
       console.error('Challenges migration error:', err);
+    }
+
+    // Cleanup: Drop unused tables
+    try {
+      await pool.query('DROP TABLE IF EXISTS daily_progress_summary CASCADE');
+      await pool.query('DROP TABLE IF EXISTS daily_progress_v2_v2 CASCADE');
+      await pool.query('DROP TABLE IF EXISTS user_badges CASCADE');
+      console.log('Unused tables cleanup completed');
+    } catch (err) {
+      console.error('Table cleanup error:', err);
     }
     
     // Migration: Add user_id and goals columns to challenges if they don't exist
