@@ -46,6 +46,8 @@ async function initDB() {
         duration INTEGER NOT NULL,
         start_date DATE NOT NULL,
         created_by INTEGER REFERENCES users(id),
+        user_id INTEGER REFERENCES users(id),
+        goals TEXT[],
         invite_code VARCHAR(20) UNIQUE,
         is_active BOOLEAN DEFAULT true,
         status VARCHAR(20) DEFAULT 'active',
@@ -221,12 +223,18 @@ async function initDB() {
 
     console.log('Database initialized successfully');
     
-    // Migration: Add password column if it doesn't exist
+    // Migration: Add missing columns if they don't exist
     try {
       await pool.query(`
         ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT ''
       `);
-      console.log('Password column migration completed');
+      
+      await pool.query(`
+        ALTER TABLE challenges 
+        ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id),
+        ADD COLUMN IF NOT EXISTS goals TEXT[]
+      `);
+              console.log('Database migration completed');
     } catch (err) {
       console.error('Migration error:', err);
     }
@@ -345,15 +353,26 @@ app.get('/api/users/:userId/challenges', async (req, res) => {
 app.post('/api/challenges', async (req, res) => {
   try {
     const { user_id, name, duration, goals, start_date } = req.body;
+    
+    // Validate required fields
+    if (!user_id || !name || !duration || !goals) {
+      return res.status(400).json({ error: 'Missing required fields: user_id, name, duration, goals' });
+    }
+    
     const startDate = start_date || new Date().toISOString().split('T')[0];
+    console.log('Creating challenge with data:', { user_id, name, duration, goals, startDate });
+    
     const result = await pool.query(
-      'INSERT INTO challenges (user_id, name, duration, goals, start_date) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      'INSERT INTO challenges (user_id, created_by, name, duration, goals, start_date) VALUES ($1, $1, $2, $3, $4, $5) RETURNING *',
       [user_id, name, duration, goals, startDate]
     );
+    
+    console.log('Challenge created successfully:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Create challenge error:', err);
-    res.status(500).json({ error: 'Failed to create challenge' });
+    console.error('Request body:', req.body);
+    res.status(500).json({ error: 'Failed to create challenge: ' + err.message });
   }
 });
 
