@@ -254,7 +254,7 @@ async function initDB() {
     try {
       await pool.query('DROP TABLE IF EXISTS daily_progress_summary CASCADE');
       await pool.query('DROP TABLE IF EXISTS daily_progress_v2_v2 CASCADE');
-      await pool.query('DROP TABLE IF EXISTS user_badges CASCADE');
+      // Note: user_badges table is needed for badge system, keeping it
       console.log('Unused tables cleanup completed');
     } catch (err) {
       console.error('Table cleanup error:', err);
@@ -568,12 +568,6 @@ app.get('/api/leaderboard', async (req, res) => {
       LEFT JOIN daily_progress_v2 dp ON u.id = dp.user_id
       LEFT JOIN user_badges ub ON u.id = ub.user_id
       LEFT JOIN badges b ON ub.badge_id = b.id AND b.category = 'streak'
-      WHERE b.id IS NULL OR b.requirement_value = (
-        SELECT MAX(b2.requirement_value)
-        FROM user_badges ub2
-        JOIN badges b2 ON ub2.badge_id = b2.id
-        WHERE ub2.user_id = u.id AND b2.category = 'streak'
-      )
       GROUP BY u.id, u.name, u.total_points, b.name, b.icon, b.theme_class
       ORDER BY u.total_points DESC, u.name ASC
       LIMIT 10
